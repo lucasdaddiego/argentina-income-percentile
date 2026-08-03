@@ -1,0 +1,88 @@
+name: Deploy (Cloudflare Pages)
+
+# Build the static site and publish it to Cloudflare Pages.
+#   • push to master / main  -> production deploy (argentina-income-analyzer.pages.dev)
+#   • pull request           -> preview deploy on a per-branch URL
+#
+# Path-filtered to the web app. The committed data artifact lives in
+# web/public/percentiles.v1.json, so a `make data` refresh that updates it also redeploys.
+#
+# Requires two repository secrets (Settings -> Secrets and variables -> Actions):
+#   CLOUDFLARE_API_TOKEN   — a token with the "Account · Cloudflare Pages · Edit" permission
+#   CLOUDFLARE_ACCOUNT_ID  — the Cloudflare account id that owns the Pages project
+# Until CLOUDFLARE_API_TOKEN is set the job still builds, but skips the deploy (with a warning)
+# rather than failing red.
+
+on:
+  push:
+    branches: [master, main]
+    paths:
+      - "web/**"
+      - ".github/workflows/deploy.yml"
+  pull_request:
+    paths:
+      - "web/**"
+      - ".github/workflows/deploy.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: Build + deploy
+    runs-on: ubuntu-latest
+    # Fork PRs don't receive the deploy secrets — skip them (ci.yml still tests them).
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install + build
+        working-directory: web
+        run: |
+          npm ci
+          npm run build
+
+      - name: Are the deploy secrets present?
+        id: gate
+        env:
+          CF_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          if [ -n "$CF_API_TOKEN" ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::CLOUDFLARE_API_TOKEN is not set — built OK but skipping the deploy."
+          fi
+
+      - name: Deploy to Cloudflare Pages
+        if: steps.gate.outputs.ready == 'true'
+        id: deploy
+        uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: web
+          # PR -> preview on the PR branch; push -> production (the project's production branch is master).
+          command: pages deploy dist --project-name=argentina-income-analyzer --branch=${{ github.event_name == 'pull_request' && github.head_ref || 'master' }}
+
+      - name: Deployment URL -> summary
+        if: steps.gate.outputs.ready == 'true' && success()
+        run: |
+          {
+            echo "### 🚀 Deployed to Cloudflare Pages"
+            echo "- Trigger: \`${{ github.event_name }}\`"
+            echo "- Deploy branch: \`${{ github.event_name == 'pull_request' && github.head_ref || 'master' }}\`"
+            echo "- URL: ${{ steps.deploy.outputs.deployment-url }}"
+          } >> "$GITHUB_STEP_SUMMARY"
