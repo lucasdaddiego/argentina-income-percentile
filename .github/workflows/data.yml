@@ -42,13 +42,14 @@ jobs:
     name: Pipeline reproduces INDEC
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Install uv
-        uses: astral-sh/setup-uv@v5
+        # setup-uv publishes no floating major tag past v7, so pin the exact release.
+        uses: astral-sh/setup-uv@v9.0.0
       - name: Sync Python deps
         run: uv sync
       - name: Cache the pinned INDEC source (keyed on the checksum pin)
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: data/raw
           key: eph-raw-${{ hashFiles('data/checksums.txt') }}
