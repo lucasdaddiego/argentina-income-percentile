@@ -1,8 +1,8 @@
 """Pinned configuration and verified INDEC reference data.
 
 Every value here was confirmed against primary INDEC sources in June 2026. This module is the
-single source of truth: variable names, the download URL, the adult-equivalent scale, the
-poverty-line values, and the official figures the pipeline must reproduce.
+single source of truth: variable names, the download URL, the poverty-line values, and the
+official figures the pipeline must reproduce.
 """
 
 from __future__ import annotations

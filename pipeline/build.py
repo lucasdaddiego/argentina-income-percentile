@@ -70,7 +70,10 @@ def build_regions(df: pd.DataFrame) -> list[RegionRow]:
     """Per-region IPCF median/mean/population, weighted by PONDIH (same universe as the IPCF measure)."""
     m = config.MEASURES["ipcf"]
     val, wgt, dec = m["value_col"], m["weight_col"], m["decile_col"]
-    keep = ~df[dec].isin([config.DECILE_NONRESPONSE_I, config.DECILE_NO_INTERVIEW_I])
+    # Exactly load.universe()'s IPCF filter: sentinels 12/13 out, and blank decile codes out too
+    # (`isin()` is False for <NA>, so `notna()` is what actually drops them). Without it the
+    # regional populations would not sum to measures.ipcf.population.
+    keep = ~df[dec].isin([config.DECILE_NONRESPONSE_I, config.DECILE_NO_INTERVIEW_I]) & df[dec].notna()
     sub = df.loc[keep, [config.REGION_COL, val, wgt]].dropna(subset=[val, wgt])
     sub = sub[(sub[wgt] > 0) & (sub[val] >= 0)]
     out: list[RegionRow] = []
@@ -96,7 +99,7 @@ def build_aglomerados(df: pd.DataFrame) -> list[AglomeradoRow]:
     """Per-aglomerado IPCF median/mean/quartiles (the 31 EPH urban agglomerates + CABA)."""
     m = config.MEASURES["ipcf"]
     val, wgt, dec = m["value_col"], m["weight_col"], m["decile_col"]
-    keep = ~df[dec].isin([config.DECILE_NONRESPONSE_I, config.DECILE_NO_INTERVIEW_I])
+    keep = ~df[dec].isin([config.DECILE_NONRESPONSE_I, config.DECILE_NO_INTERVIEW_I]) & df[dec].notna()
     sub = df.loc[keep, [config.AGLOMERADO_COL, val, wgt]].dropna(subset=[val, wgt])
     sub = sub[(sub[wgt] > 0) & (sub[val] >= 0)]
     out: list[AglomeradoRow] = []

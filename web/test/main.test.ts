@@ -174,6 +174,15 @@ describe("income bands", () => {
     expect($("cima-explain").innerHTML).toContain("1% más alto");
   });
 
+  it("captions the steepness chart when every milestone is passed on the first render", async () => {
+    // straight into the top 1% (no earlier render to leave a caption behind): renderMilestones
+    // returns early, but renderVisuals still draws #chart-steepness, so it needs its caption
+    await boot({ presetIncome: "4000000", presetPeople: "1" });
+    expect($("milestones").innerHTML).toContain("superó todos");
+    expect($("chart-steepness").innerHTML).toContain("svg");
+    expect($("foot-steepness").textContent).toContain("percentil");
+  });
+
   it("cima copy when below the top 10%", async () => {
     await bootSolo(200000);
     expect($("cima-section").hidden).toBe(true);

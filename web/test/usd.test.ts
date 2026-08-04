@@ -41,4 +41,24 @@ describe("fetchBlue", () => {
     });
     expect(await fetchBlue()).toBeNull();
   });
+
+  // init() awaits this call before rendering, so a server that accepts the connection and then
+  // stalls would leave the whole page blank. The request has to carry its own deadline.
+  it("bounds the request with a timeout signal", async () => {
+    const timeout = vi.spyOn(AbortSignal, "timeout");
+    let init: RequestInit | undefined;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (_url: string, opts?: RequestInit) => {
+        init = opts;
+        return { ok: true, json: async () => ({ venta: 1450 }) };
+      }),
+    );
+
+    expect(await fetchBlue()).toEqual({ venta: 1450, fecha: "" });
+    expect(timeout).toHaveBeenCalledOnce();
+    expect(timeout.mock.calls[0][0]).toBeGreaterThan(0); // a real deadline, not 0/Infinity
+    expect(init?.signal).toBe(timeout.mock.results[0].value); // …and it reaches fetch
+    timeout.mockRestore();
+  });
 });

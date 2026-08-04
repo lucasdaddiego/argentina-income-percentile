@@ -45,6 +45,11 @@ def test_build_regions(loaded_df):
     medians = [r["median"] for r in regions]
     assert medians == sorted(medians, reverse=True)
     assert all(set(r) == {"code", "name", "median", "mean", "population", "n_unweighted"} for r in regions)
+    # Same universe as the headline IPCF measure — the fixture's blank-decile person is outside
+    # both, so the regional rows partition it exactly (records and expanded population).
+    u = load.universe(loaded_df, config.MEASURES["ipcf"])
+    assert sum(r["n_unweighted"] for r in regions) == len(u)
+    assert sum(r["population"] for r in regions) == round(float(u["weight"].sum()))
 
 
 def test_build_aglomerados(loaded_df):
@@ -54,6 +59,9 @@ def test_build_aglomerados(loaded_df):
     assert all("p25" in a and "p75" in a for a in aglos)
     medians = [a["median"] for a in aglos]
     assert medians == sorted(medians, reverse=True)
+    u = load.universe(loaded_df, config.MEASURES["ipcf"])
+    assert sum(a["n_unweighted"] for a in aglos) == len(u)
+    assert sum(a["population"] for a in aglos) == round(float(u["weight"].sum()))
 
 
 def test_build_splits(loaded_df, monkeypatch):

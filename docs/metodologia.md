@@ -29,7 +29,7 @@ el error estadístico habitual. Las columnas `IPCF`/`ITF` vienen con decimales s
   contrastada contra `numpy.quantile(method='inverted_cdf', weights=...)`.
 - **Media / mediana por decil**: ponderadas por el factor de expansión.
 - **Gini**: área trapezoidal entre la diagonal de igualdad y la **curva de Lorenz** de los datos.
-- **Histograma**: recuentos ponderados en intervalos fijos de 0 al percentil 99; la cola superior se
+- **Histograma**: recuentos ponderados en intervalos fijos de 0 al percentil 99,9; la cola superior se
   agrupa en el último intervalo.
 
 ## Pobreza
@@ -42,7 +42,8 @@ La app compara el **ingreso por persona del hogar** con la Canasta Básica por a
   posterior, ya inflada, subestimaría los ingresos reales.
 - **Simplificación:** se cuenta a cada integrante como un adulto equivalente. La metodología oficial de
   INDEC (Nº 22, Anexo 7.1) pondera por sexo y edad, por lo que en hogares con menores el umbral real es
-  algo más bajo. La escala completa queda embebida en el artefacto para un cálculo más fino a futuro.
+  algo más bajo. Esa escala **no** está en el artefacto: un cálculo más fino requiere incorporarla
+  primero al pipeline.
 - Las canastas se actualizan **mensualmente** (independiente del trimestre de la EPH), por eso viven en
   su propio bloque del artefacto.
 

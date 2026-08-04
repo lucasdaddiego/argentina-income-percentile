@@ -27,10 +27,6 @@ from pipeline import config, load
 USECOLS = load.USECOLS
 DECILE_COLS = load.DECILE_COLS
 INCOME_COLS = ("P21", "P47T", "ITF", "IPCF")
-INT_COLS = (
-    "NRO_HOGAR", "COMPONENTE", "REGION", "AGLOMERADO", "CH04", "NIVEL_ED",
-    "CAT_OCUP", "PP04A", "PONDERA", "PONDII", "PONDIH", "PONDIIO",
-)
 
 
 def _income_str(x: float) -> str:
@@ -127,19 +123,6 @@ def make_eph_zip(zip_path, rows: list[dict], member: str | None = None) -> None:
     member = member or config.INDIVIDUAL_FILE
     with zipfile.ZipFile(zip_path, "w") as zf:
         zf.writestr(member, txt_content(rows).encode(config.CSV_ENCODING))
-
-
-def make_df(rows: list[dict]) -> pd.DataFrame:
-    """Build a DataFrame with the same dtypes load_individual() produces (decile cols Int64)."""
-    df = pd.DataFrame(rows, columns=USECOLS)
-    for c in INCOME_COLS:
-        df[c] = df[c].astype(float)
-    for c in INT_COLS:
-        df[c] = df[c].astype("int64")
-    for c in DECILE_COLS:
-        df[c] = pd.array([None if v is None else int(v) for v in df[c]], dtype="Int64")
-    df["CODUSU"] = df["CODUSU"].astype("string")
-    return df
 
 
 @pytest.fixture(scope="session")

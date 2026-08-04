@@ -23,6 +23,7 @@ import sys
 import urllib.error
 import urllib.request
 import zipfile
+from collections.abc import Callable
 
 from . import config
 
@@ -30,6 +31,16 @@ UA = "Mozilla/5.0 (argentina-income-percentile data-watch)"
 TIMEOUT = 60
 DOWNLOAD_TIMEOUT = 300
 PINNED_FIELDS = ("QUARTER", "QUARTER_LABEL", "ZIP_URL", "ZIP_NAME", "INDIVIDUAL_FILE", "HOGAR_FILE")
+# A member name read out of a downloaded zip is remote input that ends up inside a Python string
+# literal in config.py. Only a plain .txt path is usable; anything else falls back to the name we
+# derived ourselves (see safe_member).
+#
+# Must stay at least as permissive as read_zip_members.pick(), which selects on a case-insensitive
+# `.txt` suffix: a member this rejects is silently replaced by our derived name, so being stricter
+# than the selector would pin a filename that is not in the zip. INDEC has shipped `.TXT` before,
+# hence IGNORECASE, and spaces are allowed for the same reason. What stays excluded is what would
+# break the generated literal — quotes, backslashes and newlines.
+MEMBER_RE = re.compile(r"[\w .\-/]+\.txt", re.IGNORECASE)
 
 
 def parse_quarter(q: str) -> tuple[int, int]:
@@ -189,6 +200,20 @@ def read_zip_members(url: str) -> dict[str, str | None]:
     return {"individual": pick("individual"), "hogar": pick("hogar")}
 
 
+def safe_member(name: str | None, fallback: str) -> str:
+    """The zip's own member name if it's a plain .txt path, else the filename we derived."""
+    return name if name and MEMBER_RE.fullmatch(name) else fallback
+
+
+def literal(replacement: str) -> Callable[[re.Match[str]], str]:
+    """An re.sub replacement *callable*, which inserts `replacement` verbatim.
+
+    A replacement string would re-read its backslash escapes instead: `\\u` raises, and `\\g<0>`
+    splices the matched text back in. These values include a filename read from a remote zip.
+    """
+    return lambda _m: replacement
+
+
 def pr_body(nxt: dict[str, str], individual: str, hogar: str) -> str:
     return (
         f"Mechanical bump to **{nxt['label']}**, applied automatically. **Draft until validated.**\n\n"
@@ -216,8 +241,8 @@ def apply_bump() -> int:
         return 1
 
     members = read_zip_members(nxt["zip_url"])
-    individual = members["individual"] or nxt["individual_file"]
-    hogar = members["hogar"] or nxt["hogar_file"]
+    individual = safe_member(members["individual"], nxt["individual_file"])
+    hogar = safe_member(members["hogar"], nxt["hogar_file"])
     values = {
         "QUARTER": nxt["quarter"],
         "QUARTER_LABEL": nxt["label"],
@@ -230,7 +255,7 @@ def apply_bump() -> int:
     cfg_path = config.ROOT / "pipeline" / "config.py"
     text = cfg_path.read_text(encoding="utf-8")
     for name in PINNED_FIELDS:
-        text, n = re.subn(rf'(?m)^{name} = ".*"$', f'{name} = "{values[name]}"', text)
+        text, n = re.subn(rf'(?m)^{name} = ".*"$', literal(f'{name} = "{values[name]}"'), text)
         if n != 1:
             print(f"[apply] ERROR: expected exactly one '{name} = ...' line, found {n}.", file=sys.stderr)
             return 2

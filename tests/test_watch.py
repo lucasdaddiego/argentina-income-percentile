@@ -271,6 +271,52 @@ def test_apply_bump_no_checksum_and_member_fallback(tmp_path, monkeypatch):
     assert 'HOGAR_FILE = "usu_hogar_T126.txt"' in rewritten
 
 
+def test_apply_bump_rejects_unusable_member_names(tmp_path, monkeypatch):
+    # Member names come straight off a remotely downloaded zip. A backslash-bearing one used to
+    # abort the bump (re.subn read `\u` as an escape) and `a\g<0>b.txt` spliced the old line back
+    # into config.py. Both must be rejected in favour of the filename we derived ourselves.
+    root = _fake_config_root(tmp_path)
+    monkeypatch.setattr(watch, "is_available", lambda url: True)
+    monkeypatch.setattr(
+        watch,
+        "read_zip_members",
+        lambda url: {"individual": "dir\\usu_individual_T126.txt", "hogar": "a\\g<0>b.txt"},
+    )
+    monkeypatch.setattr(config, "ROOT", root)
+    monkeypatch.setattr(config, "CHECKSUMS_FILE", tmp_path / "absent.txt")
+    monkeypatch.setenv("PR_BODY_FILE", str(tmp_path / "pr.md"))
+
+    assert watch.apply_bump() == 0
+    rewritten = (root / "pipeline" / "config.py").read_text()
+    assert 'INDIVIDUAL_FILE = "usu_individual_T126.txt"' in rewritten
+    assert 'HOGAR_FILE = "usu_hogar_T126.txt"' in rewritten
+    assert "\\" not in rewritten
+    compile(rewritten, "config.py", "exec")  # and it's still importable Python
+
+
+def test_apply_bump_keeps_real_member_names_the_selector_accepts(tmp_path, monkeypatch):
+    # The validator must not be stricter than read_zip_members.pick(), which selects on a
+    # case-insensitive ".txt". Rejecting a name pick() legitimately chose silently pins our
+    # derived lowercase name instead — a file that is not in the zip, so `make data` then dies
+    # with FileNotFoundError on a case-sensitive filesystem (Linux CI) after extraction.
+    root = _fake_config_root(tmp_path)
+    monkeypatch.setattr(watch, "is_available", lambda url: True)
+    monkeypatch.setattr(
+        watch,
+        "read_zip_members",
+        lambda url: {"individual": "usu_individual_T126.TXT", "hogar": "usu hogar T126.Txt"},
+    )
+    monkeypatch.setattr(config, "ROOT", root)
+    monkeypatch.setattr(config, "CHECKSUMS_FILE", tmp_path / "absent.txt")
+    monkeypatch.setenv("PR_BODY_FILE", str(tmp_path / "pr.md"))
+
+    assert watch.apply_bump() == 0
+    rewritten = (root / "pipeline" / "config.py").read_text()
+    assert 'INDIVIDUAL_FILE = "usu_individual_T126.TXT"' in rewritten  # casing preserved
+    assert 'HOGAR_FILE = "usu hogar T126.Txt"' in rewritten            # spaces preserved
+    compile(rewritten, "config.py", "exec")
+
+
 def test_apply_bump_missing_field_returns_2(tmp_path, monkeypatch, capsys):
     # Template missing the HOGAR_FILE line -> re.subn matches 0 -> guard returns 2.
     template = _CONFIG_TEMPLATE.replace('HOGAR_FILE = "usu_hogar_T425.txt"\n', "")

@@ -425,6 +425,12 @@ function renderMilestones(v: number, pct: number) {
       return true;
     });
 
+  // The steepness chart is drawn either way (renderVisuals), so caption it before the early
+  // return — otherwise a household past every milestone gets an unlabelled chart.
+  $("foot-steepness").innerHTML =
+    `Cada barra es cuánto más de <strong>ingreso por persona</strong> separa un percentil del siguiente, cerca de tu posición (en azul). ` +
+    `Hacia la derecha los escalones se agrandan: subir cerca de la cima cuesta mucho más que abajo. Fuente: ${data.source.period_label} (INDEC).`;
+
   if (!items.length) {
     $("milestones").innerHTML = `<p class="explain">Tu hogar ya superó todos los hitos que mide esta herramienta, hasta el <strong>1% más alto</strong>.</p>`;
     return;
@@ -439,9 +445,6 @@ function renderMilestones(v: number, pct: number) {
       </div>`;
     })
     .join("");
-  $("foot-steepness").innerHTML =
-    `Cada barra es cuánto más de <strong>ingreso por persona</strong> separa un percentil del siguiente, cerca de tu posición (en azul). ` +
-    `Hacia la derecha los escalones se agrandan: subir cerca de la cima cuesta mucho más que abajo. Fuente: ${data.source.period_label} (INDEC).`;
 }
 
 function renderDual(v: number) {
