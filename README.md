@@ -97,15 +97,16 @@ docs/       metodologia.md
 
 Both layers are gated at **100% coverage** — statements **and** branches:
 
-- **`pipeline/`** — `pytest` against a tiny synthetic EPH fixture (no network, no real microdata), 91 tests.
-- **`web/src/`** — `vitest` + `jsdom`, every render path exercised against the committed artifact, 140 tests.
+- **`pipeline/`** — `pytest` against a tiny synthetic EPH fixture (no network, no real microdata), 93 tests.
+- **`web/src/`** — `vitest` + `jsdom`, every render path exercised against the committed artifact, 144 tests.
 
-`make test` runs both; `make lint` runs `ruff` + `mypy` + `tsc`. Four GitHub Actions enforce it on
-every push/PR, path-filtered so a web-only change never reaches for INDEC:
+`make test` runs both; `make lint` runs `ruff` + `mypy` + `tsc`. Five GitHub Actions run on every
+push/PR, path-filtered so a web-only change never reaches for INDEC:
 
 | Workflow | What it checks |
 | --- | --- |
 | `ci.yml` | web typecheck + `vitest` 100% gate + production build |
+| `deploy.yml` | web build + Cloudflare Pages deploy (production on `master`, preview per PR) |
 | `python.yml` | `ruff` + `mypy` + `pytest` 100% gate (offline, fast) |
 | `data.yml` | the pipeline still reproduces INDEC, and the committed artifact matches the rebuild |
 | `data-update.yml` | monthly watch — opens a draft PR when a newer EPH quarter is published |
@@ -122,8 +123,10 @@ The monthly poverty lines live in their own `POVERTY_LINES` block (they update m
 
 Static bundle + one JSON → ideal for **Cloudflare Pages** (`web/dist/`). Long cache on the
 content artifact, short cache on `index.html`. Live at
-**[argentina-income-analyzer.pages.dev](https://argentina-income-analyzer.pages.dev)**, published
-manually with `make deploy` (there's no auto-deploy workflow).
+**[argentina-income-analyzer.pages.dev](https://argentina-income-analyzer.pages.dev)**. `deploy.yml`
+publishes it from CI: every push to `master` that touches `web/` goes to production and PRs get a
+per-branch preview (needs the `CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID` secrets; without them
+the job still builds and just skips the deploy). `make deploy` does the same by hand.
 
 ## Two tiers of data (important)
 

@@ -624,7 +624,7 @@ function renderGeo() {
     const above = data.aglomerados.filter((a) => v >= a.median).length;
     $("geo-caption").textContent = "Ingreso por persona — mediana de cada aglomerado urbano (EPH)";
     $("foot-regions").textContent =
-      `Mediana del ingreso por persona por aglomerado urbano de la EPH (el Gran Buenos Aires se abre en CABA y Partidos del GBA, por eso son 32 filas para 31 aglomerados). Tu ingreso quedaría en o sobre la mediana` +
+      `Mediana del ingreso por persona por aglomerado urbano de la EPH (el Gran Buenos Aires se abre en CABA y Partidos del GBA, por eso son 32 filas para 31 aglomerados). Tu ingreso quedaría en o sobre la mediana ` +
       `de ${above} de ${data.aglomerados.length} ciudades. Es la mediana local, no tu percentil dentro de la ciudad. Fuente: ${data.source.period_label} (INDEC).`;
   } else {
     charts.renderRegions($("chart-regions"), data.regions, v);
@@ -906,10 +906,13 @@ function renderVisuals() {
   $("foot-canastas").textContent = `Canastas básicas totales (CBT) que compra el ingreso medio de cada decil, ${data.poverty_lines.period_label}. Por debajo de 1× no alcanza. ${src}`;
   const med = data.history.median_ipcf_quarterly;
   const cpiIdx = new Map(data.history.cpi_quarterly.map((c) => [c.period, c.index]));
+  // Deflate to the CPI base ("pesos de hoy"); a period missing from the series is left nominal.
+  const real = (val: number, period: string) => val * (100 / (cpiIdx.get(period) ?? 100));
   const f = med[0];
   const l = med[med.length - 1];
   const nomChg = l.median / f.median - 1;
-  const realChg = l.median / (f.median * (100 / (cpiIdx.get(f.period) ?? 100))) - 1;
+  // Deflate BOTH endpoints: the last quarter only sits at index 100 while the series is rebased to it.
+  const realChg = real(l.median, l.period) / real(f.median, f.period) - 1;
   $("foot-trend-median").innerHTML =
     `Entre ${f.period} y ${l.period} la mediana subió <strong>${signedPct(nomChg)}</strong> en pesos corrientes, ` +
     `pero <strong>${signedPct(realChg)}</strong> en pesos de hoy: la diferencia es inflación. ` +
@@ -918,7 +921,6 @@ function renderVisuals() {
   const smvm = data.history.smvm_quarterly;
   if (smvm.length) {
     const sm = new Map(smvm.map((s) => [s.period, s.smvm]));
-    const real = (val: number, period: string) => val * (100 / (cpiIdx.get(period) ?? 100));
     const smvmReal0 = real(sm.get(f.period) ?? 0, f.period);
     const smvmRealChg = real(sm.get(l.period) ?? 0, l.period) / smvmReal0 - 1;
     const ratio0 = f.median / (sm.get(f.period) ?? 1);

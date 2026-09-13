@@ -240,6 +240,12 @@ describe("geography toggle", () => {
     (document.querySelector('[data-geo="region"]') as HTMLButtonElement).click();
     expect($("geo-caption").textContent).toContain("región");
   });
+
+  it("spaces the aglomerado footnote around the city count", async () => {
+    await boot();
+    (document.querySelector('[data-geo="aglo"]') as HTMLButtonElement).click();
+    expect($("foot-regions").textContent).toMatch(/sobre la mediana de \d+ de \d+ ciudades/);
+  });
 });
 
 describe("cost & budget", () => {
@@ -380,6 +386,18 @@ describe("artifact variants", () => {
     });
     await boot({ artifact: a });
     expect($("foot-trend-smvm").innerHTML).toContain("salario mínimo");
+  });
+
+  it("keeps the real-terms median change invariant to the CPI base", async () => {
+    await boot();
+    const base = $("foot-trend-median").innerHTML;
+    // Re-express the CPI series on another base (last quarter = 200 instead of 100). A change in
+    // real terms must not move, so BOTH endpoints have to be deflated, not only the first one.
+    const a = craft((a) => {
+      a.history.cpi_quarterly = a.history.cpi_quarterly.map((c) => ({ ...c, index: c.index * 2 }));
+    });
+    await boot({ artifact: a });
+    expect($("foot-trend-median").innerHTML).toBe(base);
   });
 
   it("skips the SMVM footnote when the series is empty", async () => {
