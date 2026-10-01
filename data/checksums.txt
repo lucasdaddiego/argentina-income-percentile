@@ -1,2 +1,0 @@
-# SHA-256 of pinned INDEC source files (trust-on-first-use).
-7e523150c1da6bae28e35bfa9277d445208a6de73fc150c9f7d0d0b03c8a3473  EPH_usu_4_Trim_2025_txt.zip

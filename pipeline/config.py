@@ -25,12 +25,12 @@ ARTIFACT_PATHS = [DATA_DIR / "percentiles.v1.json", ROOT / "web" / "public" / "p
 # Q4 (unlike Q1/Q3) is NOT inflated by aguinaldo, so it's the cleaner "typical income" base.
 # Verified live: HTTP 200, last-modified 2026-04-24.
 # --------------------------------------------------------------------------------------
-QUARTER = "2025-T4"
-QUARTER_LABEL = "EPH 4º trimestre 2025"
-ZIP_URL = "https://www.indec.gob.ar/ftp/cuadros/menusuperior/eph/EPH_usu_4_Trim_2025_txt.zip"
-ZIP_NAME = "EPH_usu_4_Trim_2025_txt.zip"
-INDIVIDUAL_FILE = "usu_individual_T425.txt"
-HOGAR_FILE = "usu_hogar_T425.txt"
+QUARTER = "2026-T1"
+QUARTER_LABEL = "EPH 1º trimestre 2026"
+ZIP_URL = "https://www.indec.gob.ar/ftp/cuadros/menusuperior/eph/EPH_usu_1_Trim_2026_txt.zip"
+ZIP_NAME = "EPH_usu_1_Trim_2026_txt.zip"
+INDIVIDUAL_FILE = "usu_individual_T126.txt"
+HOGAR_FILE = "usu_hogar_T126.txt"
 
 # File format (verified by unzip + byte scan).
 CSV_SEP = ";"
