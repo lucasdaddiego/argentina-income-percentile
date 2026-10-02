@@ -196,6 +196,15 @@ describe("income bands", () => {
     expect($("headline-explain").innerHTML).toContain("por debajo de los dos");
   });
 
+  it("counts the survey sample in persons, the unit n_unweighted is in", async () => {
+    // measures.ipcf.n_unweighted counts rows of the individual base (31.690 persons in 11.628
+    // households for 4T-2025); the copy used to call them "hogares".
+    await boot();
+    const n = ARTIFACT.measures.ipcf.n_unweighted.toLocaleString("es-AR");
+    expect($("headline-explain").innerHTML).toContain(`${n} personas, no un padrón`);
+    expect($("headline-explain").innerHTML).not.toContain("hogares, no un padrón");
+  });
+
   it("cima copy when below the top 10%", async () => {
     await bootSolo(200000);
     expect($("cima-section").hidden).toBe(true);

@@ -243,7 +243,7 @@ function renderHeadline(v: number, pct: number) {
     `Tu ingreso por persona (<strong>${fmtARS(v)}</strong>) está ${vsBoth}: equivale a ` +
     `<strong>${multStr} veces la mediana</strong> (${multStr} × ${fmtARS(m.median)} ≈ ${fmtARS(v)}). ` +
     `<span class="muted">El promedio es mayor que la mediana porque los ingresos más altos lo estiran hacia arriba.</span><br><br>` +
-    `<span class="muted">Y es una <strong>estimación</strong> de una encuesta de ${fmtNum(m.n_unweighted)} hogares, no un padrón: tu percentil tiene un margen de ±${Math.max(1, Math.round(charts.percentileMargin(m, pct)))} punto${Math.max(1, Math.round(charts.percentileMargin(m, pct))) === 1 ? "" : "s"} (la franja sombreada en la regla de arriba).</span>`;
+    `<span class="muted">Y es una <strong>estimación</strong> de una encuesta a ${fmtNum(m.n_unweighted)} personas, no un padrón: tu percentil tiene un margen de ±${Math.max(1, Math.round(charts.percentileMargin(m, pct)))} punto${Math.max(1, Math.round(charts.percentileMargin(m, pct))) === 1 ? "" : "s"} (la franja sombreada en la regla de arriba).</span>`;
 }
 
 // Income "classes" by per-capita household income (IPCF). The two bottom bands use INDEC's
