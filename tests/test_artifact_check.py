@@ -54,6 +54,21 @@ def test_diffs_covers_all_node_types():
     assert "num_close" not in joined
 
 
+def test_fine_grained_keys_get_their_own_absolute_tolerance():
+    # gini is 4-decimal: the 2-decimal ABS_TOL accepted a whole point of Gini (0.427 -> 0.437).
+    assert ac.diffs({"gini": 0.427}, {"gini": 0.437}) == ["/gini: 0.427 != 0.437 (beyond tolerance)"]
+    assert ac.diffs({"gini": 0.4271}, {"gini": 0.4272}) == []  # one 4-decimal rounding flip
+    # lorenz points are 5-decimal and nested in lists: the key is the name before the [i][j].
+    old = {"lorenz": [[0.5, 0.20123]]}
+    assert ac.diffs(old, {"lorenz": [[0.5, 0.21]]}) == ["/lorenz[0][1]: 0.20123 != 0.21 (beyond tolerance)"]
+    assert ac.diffs(old, {"lorenz": [[0.5, 0.20124]]}) == []
+    # cap_quantile is a 3-decimal constant.
+    assert ac.diffs({"cap_quantile": 0.999}, {"cap_quantile": 0.99}) != []
+    assert ac.diffs({"cap_quantile": 0.999}, {"cap_quantile": 0.999}) == []
+    # Money keeps the 2-decimal default.
+    assert ac.diffs({"median": 450000.0}, {"median": 450000.01}) == []
+
+
 def test_main_wrong_arg_count():
     assert ac.main(["prog"]) == 2
     assert ac.main(["prog", "only-one"]) == 2
