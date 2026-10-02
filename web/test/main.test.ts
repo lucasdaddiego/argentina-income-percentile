@@ -183,6 +183,19 @@ describe("income bands", () => {
     expect($("foot-steepness").textContent).toContain("percentil");
   });
 
+  it("places the income against the median AND the mean, not the median alone", async () => {
+    // Default household: $1.500.000 / 3 = $500.000 per person, above the median ($450.000) but
+    // below the mean ($635.996). The copy used to say "por encima de los dos" here.
+    await boot();
+    expect($("headline-explain").innerHTML).toContain("entre la mediana y el promedio");
+    expect($("headline-explain").innerHTML).not.toContain("los dos");
+    setVal("hh-size", "1");
+    setVal("income-number", "1300000");
+    expect($("headline-explain").innerHTML).toContain("por encima de los dos");
+    setVal("income-number", "300000");
+    expect($("headline-explain").innerHTML).toContain("por debajo de los dos");
+  });
+
   it("cima copy when below the top 10%", async () => {
     await bootSolo(200000);
     expect($("cima-section").hidden).toBe(true);

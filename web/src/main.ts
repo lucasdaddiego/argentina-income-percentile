@@ -226,11 +226,13 @@ function renderHeadline(v: number, pct: number) {
     </div>`;
 
   const decile = decileOf(pct);
-  const gMed = v - m.median;
   const masN = 100 - deCada;
   const vMenos = deCada === 1 ? "tiene" : "tienen";
   const vMas = masN === 1 ? "tiene" : "tienen";
   const multStr = (v / m.median).toLocaleString("es-AR", { maximumFractionDigits: 1 });
+  // The mean sits well above the median, so an income can be above one and below the other.
+  const vsBoth =
+    v >= m.median && v >= m.mean ? "por encima de los dos" : v < m.median && v < m.mean ? "por debajo de los dos" : "entre la mediana y el promedio";
   $("headline-explain").innerHTML =
     `El <strong>percentil ${deCada}</strong> significa que, de cada 100 personas ordenadas por ingreso por persona, ` +
     `<strong>${deCada}</strong> ${vMenos} menos que tu hogar y <strong>${masN}</strong> ${vMas} más. ` +
@@ -238,7 +240,7 @@ function renderHeadline(v: number, pct: number) {
     `La <strong>mediana</strong> es el ingreso que deja a la mitad de la gente por debajo y a la otra mitad por encima: ` +
     `hoy son <strong>${fmtARS(m.median)}</strong> por persona. El <strong>promedio</strong> —lo que le tocaría a cada uno ` +
     `si se repartiera todo en partes iguales— da ${fmtARS(m.mean)}. ` +
-    `Tu ingreso por persona (<strong>${fmtARS(v)}</strong>) está ${gMed >= 0 ? "por encima" : "por debajo"} de los dos: equivale a ` +
+    `Tu ingreso por persona (<strong>${fmtARS(v)}</strong>) está ${vsBoth}: equivale a ` +
     `<strong>${multStr} veces la mediana</strong> (${multStr} × ${fmtARS(m.median)} ≈ ${fmtARS(v)}). ` +
     `<span class="muted">El promedio es mayor que la mediana porque los ingresos más altos lo estiran hacia arriba.</span><br><br>` +
     `<span class="muted">Y es una <strong>estimación</strong> de una encuesta de ${fmtNum(m.n_unweighted)} hogares, no un padrón: tu percentil tiene un margen de ±${Math.max(1, Math.round(charts.percentileMargin(m, pct)))} punto${Math.max(1, Math.round(charts.percentileMargin(m, pct))) === 1 ? "" : "s"} (la franja sombreada en la regla de arriba).</span>`;
