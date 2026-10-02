@@ -158,19 +158,21 @@ def detect() -> int:
     else:
         status = "up_to_date"
 
-    needs_issue = status != "up_to_date" or health_failed
-    # PRs handle new quarters; issues are only for "go investigate" cases.
-    needs_issue_only = needs_issue and status != "new_quarter"
+    # PRs handle new quarters; issues are only for "go investigate" cases. A failed reproducibility
+    # check is one of those even while a new quarter is pending: the bump PR does not report it, and
+    # the health step is continue-on-error, so the run would otherwise stay green.
+    needs_issue_only = status == "source_unreachable" or health_failed
+    issue_status = "health_failed" if status == "new_quarter" else status
     body_file = os.environ.get("ISSUE_BODY_FILE", "eph-watch-body.md")
     if needs_issue_only:
         with open(body_file, "w", encoding="utf-8") as f:
-            f.write(issue_body(status, nxt, health_failed))
+            f.write(issue_body(issue_status, nxt, health_failed))
 
     emit_outputs(
         {
             "status": status,
             "needs_issue": str(needs_issue_only).lower(),
-            "issue_title": issue_title(status, nxt),
+            "issue_title": issue_title(issue_status, nxt),
             "issue_body_file": body_file,
             "current_quarter": config.QUARTER,
             "current_ok": str(current_ok).lower(),

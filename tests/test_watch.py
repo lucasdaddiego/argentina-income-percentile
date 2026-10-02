@@ -195,6 +195,18 @@ def test_detect_up_to_date_with_health_failure(monkeypatch, tmp_path):
     assert body.exists() and "reproducibility check" in body.read_text()
 
 
+def test_detect_new_quarter_with_health_failure(monkeypatch, tmp_path):
+    """A pending quarter must not swallow a failed reproducibility check of the current pin: the
+    bump PR does not report it and the health step is continue-on-error, so without an issue the
+    monthly run is green and the failure is silent."""
+    rc, out, body = _run_detect(monkeypatch, tmp_path, current_ok=True, new_available=True, health=True)
+    assert rc == 0
+    assert out["status"] == "new_quarter"  # the PR step still runs
+    assert out["needs_issue"] == "true"
+    assert "reproducibility check failed" in out["issue_title"]
+    assert body.exists() and "reproducibility check" in body.read_text()
+
+
 # --- read_zip_members ---
 
 def test_read_zip_members_finds_both(monkeypatch):
