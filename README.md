@@ -121,8 +121,9 @@ The monthly poverty lines live in their own `POVERTY_LINES` block (they update m
 
 ## Deploy
 
-Static bundle + one JSON → ideal for **Cloudflare Pages** (`web/dist/`). Long cache on the
-content artifact, short cache on `index.html`. Live at
+Static bundle + one JSON → ideal for **Cloudflare Pages** (`web/dist/`). `web/public/_headers`
+caches the content-hashed JS/CSS under `/assets/` for a year (immutable) and revalidates
+`index.html` and the fixed-name `percentiles.v1.json` on every request. Live at
 **[argentina-income-analyzer.pages.dev](https://argentina-income-analyzer.pages.dev)**. `deploy.yml`
 publishes it from CI: every push to `master` that touches `web/` goes to production and PRs get a
 per-branch preview (needs the `CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID` secrets; without them

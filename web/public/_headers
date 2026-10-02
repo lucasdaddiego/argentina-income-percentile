@@ -1,0 +1,18 @@
+# Cloudflare Pages headers. Vite copies web/public/ verbatim into web/dist/.
+
+# Vite names every file under /assets/ (the JS and the CSS) by a hash of its content. New content
+# gets a new name, so cache these hard.
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# The data artifact keeps a fixed name ("v1" is the schema version, not a content hash), so a data
+# refresh reuses the same URL: revalidate on every request (304 when unchanged).
+/percentiles.v1.json
+  Cache-Control: no-cache
+
+# Short cache on the shell so a redeploy is picked up promptly.
+/index.html
+  Cache-Control: no-cache
+
+/
+  Cache-Control: no-cache
