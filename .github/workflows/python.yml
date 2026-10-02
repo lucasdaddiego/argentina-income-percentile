@@ -1,8 +1,9 @@
 name: Python checks
 
-# Lint (ruff), types (mypy) and the offline unit-test suite with a hard 100% coverage gate.
-# These are fast and need no network — distinct from data.yml, which actually re-downloads the
-# INDEC base and re-validates the artifact. Path-filtered to the Python sources + tests + config.
+# Lint + format check (ruff), types (mypy) and the offline unit-test suite with a hard 100%
+# coverage gate. These are fast and need no network — distinct from data.yml, which actually
+# re-downloads the INDEC base and re-validates the artifact. Path-filtered to the Python sources +
+# tests + config.
 
 on:
   pull_request:
@@ -42,6 +43,8 @@ jobs:
         run: uv sync
       - name: Lint (ruff)
         run: uv run ruff check pipeline tests
+      - name: Format check (ruff)
+        run: uv run ruff format --check pipeline tests
       - name: Types (mypy)
         run: uv run mypy
       - name: Tests + coverage (fails under 100%)

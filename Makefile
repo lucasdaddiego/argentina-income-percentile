@@ -26,8 +26,9 @@ test:  ## Run the test suites (Python + web, each gated at 100% coverage)
 	uv run pytest --cov=pipeline --cov-branch
 	cd $(WEB) && npm run test:cov
 
-lint:  ## Lint + typecheck everything (ruff, mypy, tsc)
+lint:  ## Lint + format-check + typecheck everything (ruff, mypy, tsc)
 	uv run ruff check pipeline tests
+	uv run ruff format --check pipeline tests
 	uv run mypy
 	cd $(WEB) && npm run typecheck
 
