@@ -1,7 +1,8 @@
 name: EPH data watch
 
 # Monthly maintenance for the pinned INDEC data.
-#  - New quarter published -> open a DRAFT PR with the mechanical bump (config pins + filenames).
+#  - Next 2º/4º trimestre published -> open a DRAFT PR with the mechanical bump (config pins +
+#    filenames). The site skips the 1º and 3º trimestre, which include the aguinaldo.
 #    The PR stays draft/red until a human adds the INDEC validation anchors and `make data` passes
 #    (anchors come from INDEC's distribution report, which lags the microdata by months).
 #  - Pinned source unreachable, or the current pin stops reproducing INDEC -> open a tracking issue.

@@ -22,7 +22,8 @@ ARTIFACT_PATHS = [DATA_DIR / "percentiles.v1.json", ROOT / "web" / "public" / "p
 
 # --------------------------------------------------------------------------------------
 # Pinned source — INDEC EPH, 4º trimestre 2025 (latest available as of June 2026).
-# Q4 (unlike Q1/Q3) is NOT inflated by aguinaldo, so it's the cleaner "typical income" base.
+# The site pins the latest 2º or 4º trimestre: unlike the 1º and 3º, those are NOT inflated by the
+# aguinaldo, so they are the cleaner "typical income" base (pipeline.watch.USABLE_QUARTERS).
 # Verified live: HTTP 200, last-modified 2026-04-24.
 # --------------------------------------------------------------------------------------
 QUARTER = "2025-T4"
@@ -188,9 +189,10 @@ SPLITS: dict[str, SplitSpec] = {
 # --------------------------------------------------------------------------------------
 # Poverty lines — CBA (línea de indigencia) and CBT (línea de pobreza) per adulto
 # equivalente. We pin OCTOBER 2025 so the poverty line matches the income vintage:
-# EPH 4º trim. 2025 income references roughly October 2025, and comparing it to a later
-# (inflation-bumped) canasta would wrongly understate real incomes. October 2025 values
-# from INDEC "Valorización mensual de la CBA y CBT, Gran Buenos Aires" (publicado 12-nov-2025).
+# EPH 4º trim. 2025 income references roughly October 2025 (for a 2º trim. pin, April), and
+# comparing it to a later (inflation-bumped) canasta would wrongly understate real incomes.
+# October 2025 values from INDEC "Valorización mensual de la CBA y CBT, Gran Buenos Aires"
+# (publicado 12-nov-2025).
 # --------------------------------------------------------------------------------------
 POVERTY_LINES = {
     "period": "2025-10",

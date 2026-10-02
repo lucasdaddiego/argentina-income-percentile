@@ -1,9 +1,9 @@
 # Metodología
 
 Fuente única: microdatos de la **Encuesta Permanente de Hogares (EPH)**, INDEC — base usuaria del
-**4º trimestre de 2025** (`EPH_usu_4_Trim_2025_txt.zip`, fijada por SHA-256). Se eligió el 4º trimestre
-porque, a diferencia del 1º y 3º, **no está afectado por el aguinaldo**, por lo que refleja mejor el
-ingreso "típico".
+**4º trimestre de 2025** (`EPH_usu_4_Trim_2025_txt.zip`, fijada por SHA-256). Se usa siempre el
+último **2º o 4º trimestre** publicado porque, a diferencia del 1º y el 3º, **no están afectados por
+el aguinaldo**, así que reflejan mejor el ingreso "típico".
 
 ## Variables y ponderadores
 

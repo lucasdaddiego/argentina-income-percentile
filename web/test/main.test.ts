@@ -61,6 +61,16 @@ describe("init smoke", () => {
     expect($("site-footer").innerHTML).toContain("EPH");
   });
 
+  it("explains the 2º/4º trimestre rule next to the pinned quarter", async () => {
+    // The site skips the 1º and 3º trimestre (INDEC: they include the aguinaldo); the label
+    // still comes from the pin.
+    await boot();
+    const body = $("methodology-body").innerHTML;
+    expect(body).toContain("último <strong>2º o 4º trimestre</strong> publicado");
+    expect(body).toContain(`(ahora, ${ARTIFACT.source.period_label})`);
+    expect(body).not.toContain("Se usa el <strong>4º trimestre</strong>");
+  });
+
   it("strips a stray query string on load", async () => {
     await boot({ search: "/?foo=bar" });
     expect(window.location.search).toBe("");

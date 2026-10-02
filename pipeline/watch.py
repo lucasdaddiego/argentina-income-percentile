@@ -1,7 +1,10 @@
 """Data-maintenance helper, run monthly by .github/workflows/data-update.yml.
 
+The site uses only the 2º and 4º trimestre (see USABLE_QUARTERS), so "the next quarter" is the
+next Q2 or Q4 after the pin: Q4 2025 -> Q2 2026 -> Q4 2026.
+
 Two modes:
-  (default)  detect — is a newer EPH quarter published, and is the pinned source reachable?
+  (default)  detect — is the next usable EPH quarter published, and is the pinned source reachable?
              Probes URLs only (no microdata download) and emits GitHub step outputs.
   --apply    bump   — perform the *mechanical* half of moving to the next quarter:
              rewrite the pinned fields in config.py (using the real filenames read from
@@ -41,6 +44,13 @@ PINNED_FIELDS = ("QUARTER", "QUARTER_LABEL", "ZIP_URL", "ZIP_NAME", "INDIVIDUAL_
 # hence IGNORECASE, and spaces are allowed for the same reason. What stays excluded is what would
 # break the generated literal — quotes, backslashes and newlines.
 MEMBER_RE = re.compile(r"[\w .\-/]+\.txt", re.IGNORECASE)
+# INDEC captures the aguinaldo in the month it is paid, so the 1º and 3º trimestre include it and
+# the 2º and 4º do not (INDEC, "Evolución de la distribución del ingreso (EPH)", note above cuadro 2.1).
+# The site compares a typical monthly income, so it pins only these.
+USABLE_QUARTERS = (2, 4)
+# The month whose CBA/CBT matches a quarter's incomes, the rule in config.POVERTY_LINES: a 4º
+# trimestre's incomes reference October, so a 2º trimestre's reference April.
+POVERTY_LINE_MONTH = {2: "April", 4: "October"}
 
 
 def parse_quarter(q: str) -> tuple[int, int]:
@@ -50,7 +60,11 @@ def parse_quarter(q: str) -> tuple[int, int]:
 
 
 def next_quarter(year: int, qtr: int) -> tuple[int, int]:
-    return (year + 1, 1) if qtr >= 4 else (year, qtr + 1)
+    """The next usable (2º or 4º) quarter after (year, qtr): Q1 -> Q2, Q2/Q3 -> Q4, Q4 -> next Q2."""
+    year, qtr = (year + 1, 1) if qtr >= 4 else (year, qtr + 1)
+    while qtr not in USABLE_QUARTERS:
+        year, qtr = (year + 1, 1) if qtr >= 4 else (year, qtr + 1)
+    return year, qtr
 
 
 def quarter_files(year: int, qtr: int) -> dict[str, str]:
@@ -215,6 +229,8 @@ def literal(replacement: str) -> Callable[[re.Match[str]], str]:
 
 
 def pr_body(nxt: dict[str, str], individual: str, hogar: str) -> str:
+    year, qtr = parse_quarter(nxt["quarter"])
+    month = f"{POVERTY_LINE_MONTH[qtr]} {year}"
     return (
         f"Mechanical bump to **{nxt['label']}**, applied automatically. **Draft until validated.**\n\n"
         "### Done by this PR\n"
@@ -224,7 +240,8 @@ def pr_body(nxt: dict[str, str], individual: str, hogar: str) -> str:
         "### Before merging (human)\n"
         "- [ ] Refresh the INDEC validation anchors (`INDEC_IPCF_*`) from INDEC's "
         f'*"Evolución de la distribución del ingreso, {nxt["label"]}"* report\n'
-        "- [ ] Update `POVERTY_LINES` (CBA/CBT for the matching month) and `HISTORY`\n"
+        f"- [ ] Update `POVERTY_LINES` to INDEC's CBA/CBT for **{month}** (a 2º trimestre's incomes "
+        "reference April, a 4º trimestre's October; see `POVERTY_LINES` in `config.py`) and `HISTORY`\n"
         "- [ ] Run `make data` — the validation gate **must pass**\n"
         "- [ ] Commit the regenerated `data/percentiles.v1.json`, "
         "`web/public/percentiles.v1.json` and `data/checksums.txt`\n\n"

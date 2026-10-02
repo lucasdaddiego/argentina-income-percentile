@@ -1018,7 +1018,7 @@ function renderMethodology() {
     <ul>
       <li>Los ingresos son <strong>nominales</strong> del mes relevado. La única serie ajustada por inflación es
       la “mediana en pesos de hoy”, deflactada con el IPC nivel general del INDEC (base ${data.history.cpi_base_label}).</li>
-      <li>Se usa el <strong>4º trimestre</strong> porque no está inflado por el aguinaldo (a diferencia del 1º y 3º).</li>
+      <li>Se usa el último <strong>2º o 4º trimestre</strong> publicado (ahora, ${data.source.period_label}) porque esos no están inflados por el aguinaldo, a diferencia del 1º y el 3º.</li>
       <li>Son ingresos <strong>declarados</strong> en una encuesta: los más altos suelen subdeclararse.</li>
       <li>Tu percentil es una <strong>estimación</strong> sobre la grilla de percentiles, no un padrón exacto.</li>
       <li>Cobertura: 31 aglomerados urbanos (la EPH no releva zonas rurales).</li>

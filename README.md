@@ -119,6 +119,9 @@ step (part of `make data`, or `uv run python -m pipeline.verify`) fails if the i
 the build is reproducible against a known input. To update to a newer quarter, edit `pipeline/config.py`
 (`ZIP_URL`, `*_FILE`, `QUARTER`) and delete `data/checksums.txt`.
 The monthly poverty lines live in their own `POVERTY_LINES` block (they update more often than the EPH).
+The site uses only the latest **2º or 4º trimestre**: INDEC's 1º and 3º trimestre include the
+aguinaldo, which inflates a typical month's income. The monthly watch (`data-update.yml`) proposes
+only those quarters, from a 4º trimestre pin the next 2º and from a 2º the next 4º.
 
 ## Deploy
 

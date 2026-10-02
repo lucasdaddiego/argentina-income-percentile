@@ -53,9 +53,18 @@ def test_parse_quarter():
     assert watch.parse_quarter("2025-T4") == (2025, 4)
 
 
-def test_next_quarter_wraps_year():
-    assert watch.next_quarter(2025, 4) == (2026, 1)
-    assert watch.next_quarter(2025, 1) == (2025, 2)
+def test_next_quarter_wraps_year_to_the_next_q2():
+    # The site uses only Q2 and Q4 (INDEC: Q1 and Q3 include the aguinaldo).
+    assert watch.next_quarter(2025, 4) == (2026, 2)
+
+
+def test_next_quarter_skips_q1_and_q3():
+    assert watch.next_quarter(2026, 1) == (2026, 2)
+    assert watch.next_quarter(2026, 3) == (2026, 4)
+
+
+def test_next_quarter_from_a_q2_pin_is_that_years_q4():
+    assert watch.next_quarter(2026, 2) == (2026, 4)
 
 
 def test_quarter_files():
@@ -127,11 +136,20 @@ def test_issue_body_up_to_date_health_only():
 
 
 def test_pr_body():
-    nxt = watch.quarter_files(2026, 1)
-    body = watch.pr_body(nxt, "usu_individual_T126.txt", "usu_hogar_T126.txt")
+    nxt = watch.quarter_files(2026, 2)
+    body = watch.pr_body(nxt, "usu_individual_T226.txt", "usu_hogar_T226.txt")
     assert nxt["label"] in body
-    assert "usu_individual_T126.txt" in body
-    assert "usu_hogar_T126.txt" in body
+    assert "usu_individual_T226.txt" in body
+    assert "usu_hogar_T226.txt" in body
+
+
+def test_pr_body_names_the_poverty_line_month_for_the_quarter():
+    # POVERTY_LINES must match the month the quarter's incomes reference: April for a Q2 pin,
+    # October for a Q4 pin.
+    q2 = watch.pr_body(watch.quarter_files(2026, 2), "i.txt", "h.txt")
+    q4 = watch.pr_body(watch.quarter_files(2026, 4), "i.txt", "h.txt")
+    assert "CBA/CBT for **April 2026**" in q2
+    assert "CBA/CBT for **October 2026**" in q4
 
 
 # --- emit_outputs ---
@@ -267,7 +285,7 @@ def test_apply_bump_success(tmp_path, monkeypatch):
 
     assert watch.apply_bump() == 0
     rewritten = (root / "pipeline" / "config.py").read_text()
-    assert 'QUARTER = "2026-T1"' in rewritten
+    assert 'QUARTER = "2026-T2"' in rewritten
     assert 'INDIVIDUAL_FILE = "ind.txt"' in rewritten
     assert 'HOGAR_FILE = "hog.txt"' in rewritten
     assert not checks.exists()  # checksum pin dropped (existed -> unlinked)
@@ -285,8 +303,8 @@ def test_apply_bump_no_checksum_and_member_fallback(tmp_path, monkeypatch):
 
     assert watch.apply_bump() == 0
     rewritten = (root / "pipeline" / "config.py").read_text()
-    assert 'INDIVIDUAL_FILE = "usu_individual_T126.txt"' in rewritten
-    assert 'HOGAR_FILE = "usu_hogar_T126.txt"' in rewritten
+    assert 'INDIVIDUAL_FILE = "usu_individual_T226.txt"' in rewritten
+    assert 'HOGAR_FILE = "usu_hogar_T226.txt"' in rewritten
 
 
 def test_apply_bump_rejects_unusable_member_names(tmp_path, monkeypatch):
@@ -298,7 +316,7 @@ def test_apply_bump_rejects_unusable_member_names(tmp_path, monkeypatch):
     monkeypatch.setattr(
         watch,
         "read_zip_members",
-        lambda url: {"individual": "dir\\usu_individual_T126.txt", "hogar": "a\\g<0>b.txt"},
+        lambda url: {"individual": "dir\\usu_individual_T226.txt", "hogar": "a\\g<0>b.txt"},
     )
     monkeypatch.setattr(config, "ROOT", root)
     monkeypatch.setattr(config, "CHECKSUMS_FILE", tmp_path / "absent.txt")
@@ -306,8 +324,8 @@ def test_apply_bump_rejects_unusable_member_names(tmp_path, monkeypatch):
 
     assert watch.apply_bump() == 0
     rewritten = (root / "pipeline" / "config.py").read_text()
-    assert 'INDIVIDUAL_FILE = "usu_individual_T126.txt"' in rewritten
-    assert 'HOGAR_FILE = "usu_hogar_T126.txt"' in rewritten
+    assert 'INDIVIDUAL_FILE = "usu_individual_T226.txt"' in rewritten
+    assert 'HOGAR_FILE = "usu_hogar_T226.txt"' in rewritten
     assert "\\" not in rewritten
     compile(rewritten, "config.py", "exec")  # and it's still importable Python
 
@@ -322,7 +340,7 @@ def test_apply_bump_keeps_real_member_names_the_selector_accepts(tmp_path, monke
     monkeypatch.setattr(
         watch,
         "read_zip_members",
-        lambda url: {"individual": "usu_individual_T126.TXT", "hogar": "usu hogar T126.Txt"},
+        lambda url: {"individual": "usu_individual_T226.TXT", "hogar": "usu hogar T226.Txt"},
     )
     monkeypatch.setattr(config, "ROOT", root)
     monkeypatch.setattr(config, "CHECKSUMS_FILE", tmp_path / "absent.txt")
@@ -330,8 +348,8 @@ def test_apply_bump_keeps_real_member_names_the_selector_accepts(tmp_path, monke
 
     assert watch.apply_bump() == 0
     rewritten = (root / "pipeline" / "config.py").read_text()
-    assert 'INDIVIDUAL_FILE = "usu_individual_T126.TXT"' in rewritten  # casing preserved
-    assert 'HOGAR_FILE = "usu hogar T126.Txt"' in rewritten  # spaces preserved
+    assert 'INDIVIDUAL_FILE = "usu_individual_T226.TXT"' in rewritten  # casing preserved
+    assert 'HOGAR_FILE = "usu hogar T226.Txt"' in rewritten  # spaces preserved
     compile(rewritten, "config.py", "exec")
 
 
