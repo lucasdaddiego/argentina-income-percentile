@@ -1,5 +1,5 @@
 """Survey-weighted statistics on numpy. Covers scalar/array quantiles, the empty-input and
-zero-income ValueError paths, and the decile_table zero-guards (empty deciles, zero income)."""
+zero-income ValueError paths, the decile_table zero-income guard and its split of tied weight."""
 
 from __future__ import annotations
 
@@ -78,19 +78,33 @@ def test_decile_table_normal():
     assert sum(r["share"] for r in rows) == pytest.approx(100.0, abs=0.1)
 
 
-def test_decile_table_zero_income_and_empty_deciles():
-    # All-zero income: total_vw == 0 -> share guard; and only decile 1 is populated, so
-    # deciles 2..10 have wd == 0 -> the mean guard. Both ternary-false legs exercised.
+def test_decile_table_zero_income():
+    # All-zero income: total_vw == 0 -> the share guard.
     rows = weighted.decile_table([0.0, 0.0], [1.0, 1.0])
     assert all(r["share"] == 0.0 for r in rows)
     assert all(r["mean"] == 0.0 for r in rows)
 
 
-def test_decile_table_tiny_leaves_higher_deciles_empty():
-    # A 2-point input maps everything into deciles 1 and 6, leaving the rest empty (wd == 0).
-    rows = weighted.decile_table([1.0, 2.0], [1.0, 1.0])
-    populated = {r["decile"] for r in rows if r["population"] > 0}
-    assert populated and populated != set(range(1, 11))
+def test_decile_table_splits_people_tied_at_a_cutoff():
+    # Three people earn exactly 20, the 0.2/0.3/0.4 cutoffs. INDEC (Cuadro 1) puts 10% of the
+    # population in every decile; assigning by "income <= hasta" put all three in decile 2
+    # (30%) and left deciles 3 and 4 empty.
+    v = [10.0, 20.0, 20.0, 20.0, 50.0, 60.0, 70.0, 80.0, 90.0, 100.0]
+    rows = weighted.decile_table(v, [1.0] * 10)
+    assert [r["population"] for r in rows] == [1] * 10
+    assert [r["mean"] for r in rows] == v
+    assert [r["share"] for r in rows] == [round(100 * x / sum(v), 2) for x in v]
+    assert [r["hasta"] for r in rows[:4]] == [10.0, 20.0, 20.0, 20.0]
+
+
+def test_decile_table_splits_one_weight_across_the_boundary():
+    # One heavy weight straddles the 10% cut: 1.0 of its 1.5 fills decile 1, the other 0.5 goes
+    # to decile 2 with 0.5 of the next person, so decile 2's mean is (0.5*1 + 0.5*2) / 1.
+    rows = weighted.decile_table([1.0, 2.0], [1.5, 8.5])
+    assert [r["population"] for r in rows] == [1] * 10
+    assert rows[0]["mean"] == 1.0
+    assert rows[1]["mean"] == 1.5
+    assert all(r["mean"] == 2.0 for r in rows[2:])
 
 
 def test_weighted_histogram():

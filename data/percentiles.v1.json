@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-10-02T01:29:47+00:00",
+  "generated_at": "2026-10-02T03:06:01+00:00",
   "currency": "ARS",
   "hero_measure": "ipcf",
   "source": {
@@ -133,72 +133,72 @@
         {
           "decile": 1,
           "hasta": 270000.0,
-          "mean": 144133.27,
-          "share": 1.45,
-          "population": 1910551
+          "mean": 142123.13,
+          "share": 1.4,
+          "population": 1880518
         },
         {
           "decile": 2,
           "hasta": 380000.0,
-          "mean": 327187.12,
-          "share": 3.31,
-          "population": 1927751
+          "mean": 324103.89,
+          "share": 3.2,
+          "population": 1880518
         },
         {
           "decile": 3,
           "hasta": 450000.0,
-          "mean": 406181.76,
-          "share": 3.91,
-          "population": 1833196
+          "mean": 404408.33,
+          "share": 4.0,
+          "population": 1880518
         },
         {
           "decile": 4,
           "hasta": 600000.0,
-          "mean": 543025.49,
-          "share": 6.05,
-          "population": 2119180
+          "mean": 533406.31,
+          "share": 5.27,
+          "population": 1880518
         },
         {
           "decile": 5,
           "hasta": 790000.0,
-          "mean": 698315.19,
-          "share": 5.93,
-          "population": 1617209
+          "mean": 684014.16,
+          "share": 6.76,
+          "population": 1880518
         },
         {
           "decile": 6,
           "hasta": 900000.0,
-          "mean": 841846.87,
-          "share": 8.78,
-          "population": 1983545
+          "mean": 838351.15,
+          "share": 8.29,
+          "population": 1880518
         },
         {
           "decile": 7,
           "hasta": 1100000.0,
-          "mean": 1012727.33,
-          "share": 10.68,
-          "population": 2006072
+          "mean": 995380.14,
+          "share": 9.84,
+          "population": 1880518
         },
         {
           "decile": 8,
           "hasta": 1400000.0,
-          "mean": 1266905.39,
-          "share": 11.12,
-          "population": 1670542
+          "mean": 1244456.35,
+          "share": 12.3,
+          "population": 1880518
         },
         {
           "decile": 9,
           "hasta": 2000000.0,
-          "mean": 1707509.64,
-          "share": 20.08,
-          "population": 2237170
+          "mean": 1644411.91,
+          "share": 16.25,
+          "population": 1880518
         },
         {
           "decile": 10,
           "hasta": null,
-          "mean": 3639811.13,
-          "share": 28.69,
-          "population": 1499968
+          "mean": 3307971.36,
+          "share": 32.69,
+          "population": 1880518
         }
       ],
       "histogram": {
@@ -834,72 +834,72 @@
         {
           "decile": 1,
           "hasta": 177800.0,
-          "mean": 117152.46,
+          "mean": 117123.36,
           "share": 1.84,
-          "population": 3004695
+          "population": 3003254
         },
         {
           "decile": 2,
           "hasta": 250000.0,
-          "mean": 218078.29,
-          "share": 3.7,
-          "population": 3239995
+          "mean": 215527.32,
+          "share": 3.39,
+          "population": 3003254
         },
         {
           "decile": 3,
           "hasta": 315666.67,
-          "mean": 286177.21,
-          "share": 4.14,
-          "population": 2765678
+          "mean": 283302.12,
+          "share": 4.45,
+          "population": 3003254
         },
         {
           "decile": 4,
           "hasta": 390000.0,
-          "mean": 351581.69,
-          "share": 5.68,
-          "population": 3087153
+          "mean": 350493.43,
+          "share": 5.51,
+          "population": 3003254
         },
         {
           "decile": 5,
           "hasta": 450000.0,
-          "mean": 418196.52,
-          "share": 6.6,
-          "population": 3013842
+          "mean": 416396.13,
+          "share": 6.55,
+          "population": 3003254
         },
         {
           "decile": 6,
           "hasta": 560000.0,
-          "mean": 506046.33,
-          "share": 7.89,
-          "population": 2977732
+          "mean": 503021.87,
+          "share": 7.91,
+          "population": 3003254
         },
         {
           "decile": 7,
           "hasta": 670000.0,
-          "mean": 614103.68,
-          "share": 9.46,
-          "population": 2942662
+          "mean": 612683.24,
+          "share": 9.63,
+          "population": 3003254
         },
         {
           "decile": 8,
           "hasta": 880000.0,
-          "mean": 763890.22,
-          "share": 12.03,
-          "population": 3009241
+          "mean": 763030.9,
+          "share": 12.0,
+          "population": 3003254
         },
         {
           "decile": 9,
           "hasta": 1250000.0,
-          "mean": 1046471.01,
-          "share": 16.63,
-          "population": 3035790
+          "mean": 1042422.26,
+          "share": 16.39,
+          "population": 3003254
         },
         {
           "decile": 10,
           "hasta": null,
-          "mean": 2068912.01,
-          "share": 32.02,
-          "population": 2955752
+          "mean": 2055959.41,
+          "share": 32.33,
+          "population": 3003254
         }
       ],
       "histogram": {

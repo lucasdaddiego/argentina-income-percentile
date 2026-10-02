@@ -18,7 +18,8 @@ computes the weighted income distribution itself. No eyeballed deciles, no decor
 
 > **Validated against INDEC** (Evolución de la distribución del ingreso, 4º trim. 2025):
 > Gini IPCF **0.427 ✓**, mediana **$450.000 ✓**, media **$635.996 ✓**, población **30.032.540 ✓**,
-> and every published decile cutoff reproduced to the peso.
+> every published decile cutoff reproduced to the peso, and every decile's income share to the
+> published 0.1 point.
 
 It has two parts:
 

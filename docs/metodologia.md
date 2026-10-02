@@ -28,6 +28,10 @@ el error estadístico habitual. Las columnas `IPCF`/`ITF` vienen con decimales s
 - **Percentiles / deciles**: inversión de la CDF empírica ponderada (tipo 1, sin interpolar de más),
   contrastada contra `numpy.quantile(method='inverted_cdf', weights=...)`.
 - **Media / mediana por decil**: ponderadas por el factor de expansión.
+- **Composición de cada decil**: como en el Cuadro 1 de INDEC, cada decil reúne el **10% de la
+  población ponderada**. Se ordena a las personas por ingreso y se corta el peso acumulado en cada
+  10%; si un corte cae dentro del peso de una persona (o de varias con el mismo ingreso, algo
+  frecuente en montos redondos como $1.000.000), ese peso se reparte entre los dos deciles.
 - **Gini**: área trapezoidal entre la diagonal de igualdad y la **curva de Lorenz** de los datos.
 - **Histograma**: recuentos ponderados en intervalos fijos de 0 al percentil 99,9; la cola superior se
   agrupa en el último intervalo.
@@ -51,7 +55,8 @@ La app compara el **ingreso por persona del hogar** con la Canasta Básica por a
 
 El pipeline reproduce las cifras publicadas por INDEC ("Evolución de la distribución del ingreso (EPH),
 4º trim. 2025") para el IPCF: Gini **0,427**, mediana **$450.000**, media **$635.996**, población
-**30.032.540**, y todos los límites de decil ("hasta") al peso. El ingreso personal (`P47T`) se
+**30.032.540**, todos los límites de decil ("hasta") al peso y la participación de cada decil en el
+ingreso al décimo de punto. El ingreso personal (`P47T`) se
 contrasta además contra las etiquetas de decil oficiales del propio microdato (`DECINDR`).
 
 > Elaboración propia en base a microdatos de la Encuesta Permanente de Hogares (EPH), INDEC.

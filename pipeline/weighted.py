@@ -66,22 +66,32 @@ def lorenz_and_gini(
 
 
 def decile_table(values: npt.ArrayLike, weights: npt.ArrayLike) -> list[dict]:
-    """Per-decile upper limit ('hasta'), weighted mean, income share (%), weighted pop."""
-    v = np.asarray(values, float)
-    w = np.asarray(weights, float)
+    """Per-decile upper limit ('hasta'), weighted mean, income share (%), weighted pop.
+
+    Like INDEC's Cuadro 1, every decile holds 10% of the weighted population: people are ordered
+    by income and the cumulative weight is cut at each 10%. A weight that straddles a cut (people
+    tied at the cutoff income, or one heavy weight) is split between the two deciles in proportion.
+    Assigning by "income <= hasta" instead put every person tied at a cutoff in the lower decile,
+    which moved whole points of income share wherever many incomes sit on a round number.
+    'hasta' is the weighted quantile at the cut.
+    """
+    v, w = _sorted(values, weights)
     cutoffs = np.atleast_1d(weighted_quantile(v, w, [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]))
-    decile = np.clip(np.searchsorted(cutoffs, v, side="left") + 1, 1, 10)
+    cw = np.concatenate([[0.0], np.cumsum(w)])
+    total_w = float(cw[-1])
     total_vw = float(np.sum(v * w))
     rows = []
     for d in range(1, 11):
-        m = decile == d
-        wd = float(np.sum(w[m]))
-        vwd = float(np.sum(v[m] * w[m]))
+        lo, hi = total_w * (d - 1) / 10, total_w * d / 10
+        # The part of each person's weight that falls inside [lo, hi).
+        part = np.clip(np.minimum(cw[1:], hi) - np.maximum(cw[:-1], lo), 0.0, None)
+        wd = float(np.sum(part))
+        vwd = float(np.sum(v * part))
         rows.append(
             {
                 "decile": d,
                 "hasta": None if d == 10 else round(float(cutoffs[d - 1]), 2),
-                "mean": round(vwd / wd, 2) if wd else 0.0,
+                "mean": round(vwd / wd, 2),
                 "share": round(100.0 * vwd / total_vw, 2) if total_vw else 0.0,
                 "population": round(wd),
             }
