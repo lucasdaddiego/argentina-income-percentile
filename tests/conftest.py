@@ -43,11 +43,27 @@ def build_rows() -> list[dict]:
         nonlocal cu
         cu += 1
         base = {
-            "CODUSU": f"T{cu:020d}", "NRO_HOGAR": 1, "COMPONENTE": 1,
-            "REGION": 1, "AGLOMERADO": 32, "CH04": 1, "NIVEL_ED": 1, "CAT_OCUP": 3, "PP04A": 2,
-            "P21": 0.0, "P47T": 0.0, "ITF": 0.0, "IPCF": 0.0,
-            "PONDERA": 100, "PONDII": 100, "PONDIH": 100, "PONDIIO": 100,
-            "DECCFR": None, "DECINDR": None, "DECOCUR": None, "DECIFR": None,
+            "CODUSU": f"T{cu:020d}",
+            "NRO_HOGAR": 1,
+            "COMPONENTE": 1,
+            "REGION": 1,
+            "AGLOMERADO": 32,
+            "CH04": 1,
+            "NIVEL_ED": 1,
+            "CAT_OCUP": 3,
+            "PP04A": 2,
+            "P21": 0.0,
+            "P47T": 0.0,
+            "ITF": 0.0,
+            "IPCF": 0.0,
+            "PONDERA": 100,
+            "PONDII": 100,
+            "PONDIH": 100,
+            "PONDIIO": 100,
+            "DECCFR": None,
+            "DECINDR": None,
+            "DECOCUR": None,
+            "DECIFR": None,
         }
         base.update(kw)
         rows.append(base)
@@ -56,9 +72,18 @@ def build_rows() -> list[dict]:
     # 1. Zero-income population: included by IPCF (include_zero), excluded by individual.
     for i in range(4):
         add(
-            REGION=[1, 43, 44, 1][i], AGLOMERADO=[32, 33, 2, 32][i], CH04=1 + (i % 2),
-            IPCF=0.0, P47T=0.0, ITF=0.0,
-            DECCFR=0, DECINDR=0, DECOCUR=0, DECIFR=0, PONDIH=120 + i, PONDII=120 + i,
+            REGION=[1, 43, 44, 1][i],
+            AGLOMERADO=[32, 33, 2, 32][i],
+            CH04=1 + (i % 2),
+            IPCF=0.0,
+            P47T=0.0,
+            ITF=0.0,
+            DECCFR=0,
+            DECINDR=0,
+            DECOCUR=0,
+            DECIFR=0,
+            PONDIH=120 + i,
+            PONDII=120 + i,
         )
 
     # 2. Perceptores across deciles 1..10 (3 rows each), spread over regions/aglos/splits.
@@ -69,11 +94,23 @@ def build_rows() -> list[dict]:
             ipcf = d * 100000.0 + j * 1000
             p47t = d * 120000.0 + j * 1500
             add(
-                REGION=regions[gi % 3], AGLOMERADO=aglos[gi % 3], CH04=1 + (gi % 2),
-                NIVEL_ED=1 + (gi % 6), CAT_OCUP=[1, 2, 3][gi % 3], PP04A=2,
-                IPCF=ipcf, P47T=p47t, ITF=ipcf * 2, P21=p47t,
-                DECCFR=d, DECINDR=d, DECOCUR=d, DECIFR=d,
-                PONDIH=100 + d, PONDII=100 + d, PONDIIO=100 + d,
+                REGION=regions[gi % 3],
+                AGLOMERADO=aglos[gi % 3],
+                CH04=1 + (gi % 2),
+                NIVEL_ED=1 + (gi % 6),
+                CAT_OCUP=[1, 2, 3][gi % 3],
+                PP04A=2,
+                IPCF=ipcf,
+                P47T=p47t,
+                ITF=ipcf * 2,
+                P21=p47t,
+                DECCFR=d,
+                DECINDR=d,
+                DECOCUR=d,
+                DECIFR=d,
+                PONDIH=100 + d,
+                PONDII=100 + d,
+                PONDIIO=100 + d,
             )
             gi += 1
     # Exactly one perceptor with PP04A=1 -> its sector group has n=1 (< SPLIT_MIN_N=2) -> dropped.

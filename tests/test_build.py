@@ -110,9 +110,20 @@ def test_build_end_to_end(eph_raw, tmp_path, monkeypatch):
     paths = _patch_artifacts(tmp_path, monkeypatch)
     artifact = build.build()
     expected_keys = {
-        "schema_version", "generated_at", "currency", "hero_measure", "source", "measures",
-        "regions", "aglomerados", "splits", "poverty_lines", "indec_reference_ipcf",
-        "history", "cost_of_living", "citation",
+        "schema_version",
+        "generated_at",
+        "currency",
+        "hero_measure",
+        "source",
+        "measures",
+        "regions",
+        "aglomerados",
+        "splits",
+        "poverty_lines",
+        "indec_reference_ipcf",
+        "history",
+        "cost_of_living",
+        "citation",
     }
     assert set(artifact) == expected_keys
     assert set(artifact["measures"]) == {"individual", "ipcf"}

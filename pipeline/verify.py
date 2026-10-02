@@ -41,8 +41,7 @@ def verify() -> str:
     expected = pinned.get(config.ZIP_NAME)
     if expected is None:
         config.CHECKSUMS_FILE.write_text(
-            "# SHA-256 of pinned INDEC source files (trust-on-first-use).\n"
-            f"{digest}  {config.ZIP_NAME}\n"
+            f"# SHA-256 of pinned INDEC source files (trust-on-first-use).\n{digest}  {config.ZIP_NAME}\n"
         )
         print(f"[verify] pinned {config.ZIP_NAME} = {digest} (first use)")
     elif expected != digest:

@@ -26,7 +26,10 @@ def _artifact():
     return {
         "measures": {
             "ipcf": {
-                "gini": 0.42, "mean": 600000.0, "median": 450000.0, "population": 30000000,
+                "gini": 0.42,
+                "mean": 600000.0,
+                "median": 450000.0,
+                "population": 30000000,
                 "deciles": _ipcf_deciles(),
             },
             "individual": {"deciles": [{"decile": d, "mean": d * 120000} for d in range(1, 11)]},
@@ -36,7 +39,11 @@ def _artifact():
 
 def _ref(mean=600000):
     return {
-        "gini": 0.42, "mean": mean, "median": 450000, "population": 30000000, "d10_d1_median_gap": 13,
+        "gini": 0.42,
+        "mean": mean,
+        "median": 450000,
+        "population": 30000000,
+        "d10_d1_median_gap": 13,
         "deciles": _ipcf_deciles(),
     }
 
@@ -50,6 +57,7 @@ def _setup(tmp_path, monkeypatch, loaded_df, *, ref):
 
 
 # --- Gate.check unit coverage (rel/absolute x pass/fail, and rel with expected==0) ---
+
 
 def test_gate_absolute_pass_and_fail(capsys):
     g = validate.Gate()
@@ -69,6 +77,7 @@ def test_gate_relative_pass_and_zero_expected(capsys):
 
 
 # --- validate() integration ---
+
 
 def test_validate_passes(tmp_path, monkeypatch, loaded_df, capsys):
     _setup(tmp_path, monkeypatch, loaded_df, ref=_ref())

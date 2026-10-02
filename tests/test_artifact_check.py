@@ -23,20 +23,32 @@ def test_diffs_identical():
 
 def test_diffs_covers_all_node_types():
     old = {
-        "a": 1, "b": "x", "c": True, "d": [1, 2, 3], "e": {"n": 1},
+        "a": 1,
+        "b": "x",
+        "c": True,
+        "d": [1, 2, 3],
+        "e": {"n": 1},
         "removed": 1,
         "generated_at": "T1",
-        "num_far": 1.0, "num_close": 1.000000001,
-        "bool_ne": True, "str_ne": "foo",
+        "num_far": 1.0,
+        "num_close": 1.000000001,
+        "bool_ne": True,
+        "str_ne": "foo",
         "list_len": [1, 2],
         "type_change": {"x": 1},
     }
     new = {
-        "a": 1, "b": "x", "c": True, "d": [1, 2, 3], "e": {"n": 1},
+        "a": 1,
+        "b": "x",
+        "c": True,
+        "d": [1, 2, 3],
+        "e": {"n": 1},
         "added": 2,
         "generated_at": "T2",  # differs, but ignored
-        "num_far": 999.0, "num_close": 1.0,
-        "bool_ne": False, "str_ne": "bar",
+        "num_far": 999.0,
+        "num_close": 1.0,
+        "bool_ne": False,
+        "str_ne": "bar",
         "list_len": [1],
         "type_change": [1],
     }

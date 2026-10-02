@@ -83,14 +83,16 @@ def build_regions(df: pd.DataFrame) -> list[RegionRow]:
             continue
         v = r[val].to_numpy(dtype=float)
         w = r[wgt].to_numpy(dtype=float)
-        out.append({
-            "code": int(code),
-            "name": name,
-            "median": round(float(weighted.weighted_quantile(v, w, 0.5)), 2),
-            "mean": round(weighted.weighted_mean(v, w), 2),
-            "population": round(float(w.sum())),
-            "n_unweighted": len(r),
-        })
+        out.append(
+            {
+                "code": int(code),
+                "name": name,
+                "median": round(float(weighted.weighted_quantile(v, w, 0.5)), 2),
+                "mean": round(weighted.weighted_mean(v, w), 2),
+                "population": round(float(w.sum())),
+                "n_unweighted": len(r),
+            }
+        )
     out.sort(key=lambda x: -x["median"])
     return out
 
@@ -109,16 +111,18 @@ def build_aglomerados(df: pd.DataFrame) -> list[AglomeradoRow]:
             continue
         v = r[val].to_numpy(dtype=float)
         w = r[wgt].to_numpy(dtype=float)
-        out.append({
-            "code": int(code),
-            "name": name,
-            "median": round(float(weighted.weighted_quantile(v, w, 0.5)), 2),
-            "mean": round(weighted.weighted_mean(v, w), 2),
-            "p25": round(float(weighted.weighted_quantile(v, w, 0.25)), 2),
-            "p75": round(float(weighted.weighted_quantile(v, w, 0.75)), 2),
-            "population": round(float(w.sum())),
-            "n_unweighted": len(r),
-        })
+        out.append(
+            {
+                "code": int(code),
+                "name": name,
+                "median": round(float(weighted.weighted_quantile(v, w, 0.5)), 2),
+                "mean": round(weighted.weighted_mean(v, w), 2),
+                "p25": round(float(weighted.weighted_quantile(v, w, 0.25)), 2),
+                "p75": round(float(weighted.weighted_quantile(v, w, 0.75)), 2),
+                "population": round(float(w.sum())),
+                "n_unweighted": len(r),
+            }
+        )
     out.sort(key=lambda x: -x["median"])
     return out
 
@@ -145,17 +149,19 @@ def build_splits(df: pd.DataFrame) -> dict:
                 continue
             v = g[val].to_numpy(dtype=float)
             w = g[wgt].to_numpy(dtype=float)
-            groups.append({
-                "key": str(code),
-                "label": label,
-                "median": round(float(weighted.weighted_quantile(v, w, 0.5)), 2),
-                "mean": round(weighted.weighted_mean(v, w), 2),
-                "p25": round(float(weighted.weighted_quantile(v, w, 0.25)), 2),
-                "p75": round(float(weighted.weighted_quantile(v, w, 0.75)), 2),
-                "n": len(g),
-                "population": round(float(w.sum())),
-                "percentiles": weighted.percentiles(v, w, pct_list),
-            })
+            groups.append(
+                {
+                    "key": str(code),
+                    "label": label,
+                    "median": round(float(weighted.weighted_quantile(v, w, 0.5)), 2),
+                    "mean": round(weighted.weighted_mean(v, w), 2),
+                    "p25": round(float(weighted.weighted_quantile(v, w, 0.25)), 2),
+                    "p75": round(float(weighted.weighted_quantile(v, w, 0.75)), 2),
+                    "n": len(g),
+                    "population": round(float(w.sum())),
+                    "percentiles": weighted.percentiles(v, w, pct_list),
+                }
+            )
         out[key] = {"label": spec["label"], "groups": groups}
     return out
 

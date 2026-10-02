@@ -75,16 +75,14 @@ def is_available(url: str) -> bool:
     status-only check false-positives. We require a zip-like Content-Type. A tiny ranged GET
     keeps the transfer to one byte for files that do exist.
     """
-    req = urllib.request.Request(
-        url, method="GET", headers={"User-Agent": UA, "Range": "bytes=0-0"}
-    )
+    req = urllib.request.Request(url, method="GET", headers={"User-Agent": UA, "Range": "bytes=0-0"})
     try:
         with urllib.request.urlopen(req, timeout=TIMEOUT) as resp:
             if not 200 <= resp.status < 300:
                 return False
             ctype = (resp.headers.get("Content-Type") or "").lower()
             return "zip" in ctype or "octet-stream" in ctype
-    except (urllib.error.URLError, OSError):
+    except urllib.error.URLError, OSError:
         return False
 
 
@@ -104,18 +102,18 @@ def issue_body(status: str, nxt: dict[str, str], health_failed: bool) -> str:
             f"```\n{nxt['zip_url']}\n```\n\n"
             "### To update (validated bump)\n"
             "1. Edit `pipeline/config.py`:\n"
-            f"   - `QUARTER = \"{nxt['quarter']}\"`\n"
-            f"   - `QUARTER_LABEL = \"{nxt['label']}\"`\n"
-            f"   - `ZIP_URL = \"{nxt['zip_url']}\"`\n"
-            f"   - `ZIP_NAME = \"{nxt['zip_name']}\"`\n"
-            f"   - `INDIVIDUAL_FILE = \"{nxt['individual_file']}\"`\n"
-            f"   - `HOGAR_FILE = \"{nxt['hogar_file']}\"`\n"
+            f'   - `QUARTER = "{nxt["quarter"]}"`\n'
+            f'   - `QUARTER_LABEL = "{nxt["label"]}"`\n'
+            f'   - `ZIP_URL = "{nxt["zip_url"]}"`\n'
+            f'   - `ZIP_NAME = "{nxt["zip_name"]}"`\n'
+            f'   - `INDIVIDUAL_FILE = "{nxt["individual_file"]}"`\n'
+            f'   - `HOGAR_FILE = "{nxt["hogar_file"]}"`\n'
             "2. Delete `data/checksums.txt` (re-pins the new file on the next `make data`).\n"
             "3. Refresh the INDEC validation anchors (`INDEC_IPCF_*`) and the reference blocks "
             "(`POVERTY_LINES`, `HISTORY`, `COST_OF_LIVING`) from INDEC's published figures.\n"
             "4. Run `make data` — the validation gate must pass before committing.\n\n"
             "> ⚠️ The validation anchors come from INDEC's *\"Evolución de la distribución del "
-            "ingreso\"* report, released a few months **after** the microdata. If that report "
+            'ingreso"* report, released a few months **after** the microdata. If that report '
             "isn't out yet, hold the bump so the validation gate stays meaningful."
         )
     elif status == "source_unreachable":
@@ -225,7 +223,7 @@ def pr_body(nxt: dict[str, str], individual: str, hogar: str) -> str:
         "- removed `data/checksums.txt` (re-pins the new file on the next `make data`)\n\n"
         "### Before merging (human)\n"
         "- [ ] Refresh the INDEC validation anchors (`INDEC_IPCF_*`) from INDEC's "
-        f"*\"Evolución de la distribución del ingreso, {nxt['label']}\"* report\n"
+        f'*"Evolución de la distribución del ingreso, {nxt["label"]}"* report\n'
         "- [ ] Update `POVERTY_LINES` (CBA/CBT for the matching month) and `HISTORY`\n"
         "- [ ] Run `make data` — the validation gate **must pass**\n"
         "- [ ] Commit the regenerated `data/percentiles.v1.json`, "

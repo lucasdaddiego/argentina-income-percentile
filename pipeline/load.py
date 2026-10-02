@@ -16,11 +16,27 @@ from . import config
 # CODUSU + NRO_HOGAR are kept as the household-join keys (see module docstring); CH04/NIVEL_ED/
 # CAT_OCUP/PP04A drive the structural splits; the rest are income values, weights and deciles.
 USECOLS = [
-    "CODUSU", "NRO_HOGAR", "COMPONENTE", "REGION", "AGLOMERADO",
-    "CH04", "NIVEL_ED", "CAT_OCUP", "PP04A",
-    "P21", "P47T", "ITF", "IPCF",
-    "PONDERA", "PONDII", "PONDIH", "PONDIIO",
-    "DECCFR", "DECINDR", "DECOCUR", "DECIFR",
+    "CODUSU",
+    "NRO_HOGAR",
+    "COMPONENTE",
+    "REGION",
+    "AGLOMERADO",
+    "CH04",
+    "NIVEL_ED",
+    "CAT_OCUP",
+    "PP04A",
+    "P21",
+    "P47T",
+    "ITF",
+    "IPCF",
+    "PONDERA",
+    "PONDII",
+    "PONDIH",
+    "PONDIIO",
+    "DECCFR",
+    "DECINDR",
+    "DECOCUR",
+    "DECIFR",
 ]
 DECILE_COLS = ["DECCFR", "DECINDR", "DECOCUR", "DECIFR"]
 

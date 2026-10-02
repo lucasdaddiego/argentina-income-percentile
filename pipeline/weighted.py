@@ -77,19 +77,19 @@ def decile_table(values: npt.ArrayLike, weights: npt.ArrayLike) -> list[dict]:
         m = decile == d
         wd = float(np.sum(w[m]))
         vwd = float(np.sum(v[m] * w[m]))
-        rows.append({
-            "decile": d,
-            "hasta": None if d == 10 else round(float(cutoffs[d - 1]), 2),
-            "mean": round(vwd / wd, 2) if wd else 0.0,
-            "share": round(100.0 * vwd / total_vw, 2) if total_vw else 0.0,
-            "population": round(wd),
-        })
+        rows.append(
+            {
+                "decile": d,
+                "hasta": None if d == 10 else round(float(cutoffs[d - 1]), 2),
+                "mean": round(vwd / wd, 2) if wd else 0.0,
+                "share": round(100.0 * vwd / total_vw, 2) if total_vw else 0.0,
+                "population": round(wd),
+            }
+        )
     return rows
 
 
-def weighted_histogram(
-    values: npt.ArrayLike, weights: npt.ArrayLike, n_bins: int = 40, cap_q: float = 0.99
-) -> dict:
+def weighted_histogram(values: npt.ArrayLike, weights: npt.ArrayLike, n_bins: int = 40, cap_q: float = 0.99) -> dict:
     """Weighted histogram from 0 to the cap_q quantile; the long tail folds into the top bin."""
     v = np.asarray(values, float)
     w = np.asarray(weights, float)

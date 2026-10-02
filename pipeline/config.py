@@ -37,6 +37,7 @@ CSV_SEP = ";"
 CSV_ENCODING = "latin-1"  # Q4 2025 is pure ASCII; latin-1 is safe across quarters.
 NA_VALUES = ["-9"]  # -9 = "no respuesta" for income amounts → treat as missing.
 
+
 # --------------------------------------------------------------------------------------
 # Measures. The headline ("hero") shown in the web app is household per-capita income
 # (IPCF, weight PONDIH) — also the poverty base; individual total income (P47T, weight
@@ -85,7 +86,7 @@ MEASURES: dict[str, MeasureSpec] = {
 HERO_MEASURE = "ipcf"
 
 # Decile-label sentinel codes (apply to DECCFR / DECINDR / DECCFR family).
-DECILE_NO_INCOME = "00"   # sin ingresos
+DECILE_NO_INCOME = "00"  # sin ingresos
 DECILE_NONRESPONSE = "12"  # no respuesta de ingresos
 DECILE_NO_INTERVIEW = "13"  # entrevista individual no realizada
 # Integer forms (decile columns are parsed to nullable Int64 in load.py).
@@ -107,15 +108,38 @@ REGION_NAMES = {
 # EPH aglomerados (AGLOMERADO N(2)) → display names, for the city-level regional breakdown.
 AGLOMERADO_COL = "AGLOMERADO"
 AGLOMERADO_NAMES = {
-    2: "Gran La Plata", 3: "Bahía Blanca-Cerri", 4: "Gran Rosario", 5: "Gran Santa Fe",
-    6: "Gran Paraná", 7: "Posadas", 8: "Gran Resistencia", 9: "Comodoro Rivadavia-Rada Tilly",
-    10: "Gran Mendoza", 12: "Corrientes", 13: "Gran Córdoba", 14: "Concordia", 15: "Formosa",
-    17: "Neuquén-Plottier", 18: "Santiago del Estero-La Banda", 19: "Jujuy-Palpalá",
-    20: "Río Gallegos", 22: "Gran Catamarca", 23: "Gran Salta", 25: "La Rioja",
-    26: "Gran San Luis", 27: "Gran San Juan", 29: "Gran Tucumán-Tafí Viejo", 30: "Santa Rosa-Toay",
-    31: "Ushuaia-Río Grande", 32: "Ciudad de Buenos Aires", 33: "Partidos del GBA",
-    34: "Mar del Plata", 36: "Río Cuarto", 38: "San Nicolás-Villa Constitución",
-    91: "Rawson-Trelew", 93: "Viedma-Carmen de Patagones",
+    2: "Gran La Plata",
+    3: "Bahía Blanca-Cerri",
+    4: "Gran Rosario",
+    5: "Gran Santa Fe",
+    6: "Gran Paraná",
+    7: "Posadas",
+    8: "Gran Resistencia",
+    9: "Comodoro Rivadavia-Rada Tilly",
+    10: "Gran Mendoza",
+    12: "Corrientes",
+    13: "Gran Córdoba",
+    14: "Concordia",
+    15: "Formosa",
+    17: "Neuquén-Plottier",
+    18: "Santiago del Estero-La Banda",
+    19: "Jujuy-Palpalá",
+    20: "Río Gallegos",
+    22: "Gran Catamarca",
+    23: "Gran Salta",
+    25: "La Rioja",
+    26: "Gran San Luis",
+    27: "Gran San Juan",
+    29: "Gran Tucumán-Tafí Viejo",
+    30: "Santa Rosa-Toay",
+    31: "Ushuaia-Río Grande",
+    32: "Ciudad de Buenos Aires",
+    33: "Partidos del GBA",
+    34: "Mar del Plata",
+    36: "Río Cuarto",
+    38: "San Nicolás-Villa Constitución",
+    91: "Rawson-Trelew",
+    93: "Viedma-Carmen de Patagones",
 }
 
 # Structural splits of the INDIVIDUAL-income universe (perceptores), for "El ingreso según
@@ -133,18 +157,32 @@ class SplitSpec(TypedDict):
 
 
 SPLITS: dict[str, SplitSpec] = {
-    "sexo": {"col": "CH04", "label": "Sexo",
-             "groups": {1: "Varones", 2: "Mujeres"}},
-    "educacion": {"col": "NIVEL_ED", "label": "Nivel educativo",
-                  "groups": {1: "Primaria incompleta", 2: "Primaria completa",
-                             3: "Secundaria incompleta", 4: "Secundaria completa",
-                             5: "Superior incompleta", 6: "Superior completa"}},
-    "cat_ocup": {"col": "CAT_OCUP", "label": "Categoría ocupacional",
-                 "groups": {1: "Patrón/a", 2: "Cuenta propia", 3: "Asalariado/a"}},
+    "sexo": {"col": "CH04", "label": "Sexo", "groups": {1: "Varones", 2: "Mujeres"}},
+    "educacion": {
+        "col": "NIVEL_ED",
+        "label": "Nivel educativo",
+        "groups": {
+            1: "Primaria incompleta",
+            2: "Primaria completa",
+            3: "Secundaria incompleta",
+            4: "Secundaria completa",
+            5: "Superior incompleta",
+            6: "Superior completa",
+        },
+    },
+    "cat_ocup": {
+        "col": "CAT_OCUP",
+        "label": "Categoría ocupacional",
+        "groups": {1: "Patrón/a", 2: "Cuenta propia", 3: "Asalariado/a"},
+    },
     # PP04A is asked of every ocupado, so without the CAT_OCUP=3 filter "Privado" would also hold
     # the patrones and cuentapropistas the label says it excludes.
-    "sector": {"col": "PP04A", "label": "Sector (asalariados)",
-               "groups": {1: "Estatal", 2: "Privado"}, "where": {"CAT_OCUP": 3}},
+    "sector": {
+        "col": "PP04A",
+        "label": "Sector (asalariados)",
+        "groups": {1: "Estatal", 2: "Privado"},
+        "where": {"CAT_OCUP": 3},
+    },
 }
 
 # --------------------------------------------------------------------------------------
@@ -161,6 +199,7 @@ POVERTY_LINES = {
     "cba_adulto_equiv": 176150.0,  # línea de indigencia, por adulto equivalente
     "cbt_adulto_equiv": 392815.0,  # línea de pobreza, por adulto equivalente
 }
+
 
 # --------------------------------------------------------------------------------------
 # Validation anchors — INDEC "Evolución de la distribución del ingreso (EPH), 4º trim. 2025"
@@ -284,59 +323,155 @@ HISTORY = {
 COST_OF_LIVING = {
     "period_label": "mediados de 2026 (mayo–junio 2026)",
     "lines": [
-        {"key": "alquiler", "label": "Alquiler", "amount": 668000, "scope": "hogar",
-         "detail": "Cambia según la región (elegí abajo). Promedios 2026 de Zonaprop/Reporte Inmobiliario vía La Nación; precio de oferta, el contrato real suele ser algo menor.",
-         "source": "Zonaprop / Reporte Inmobiliario / La Nación", "confidence": "high"},
-        {"key": "expensas", "label": "Expensas", "amount": 80000, "scope": "hogar",
-         "detail": "Depto estándar sin amenities ($60.000–$100.000). Con amenities, mucho más.",
-         "source": "ConsorcioAbierto / Roomix", "confidence": "medium"},
-        {"key": "luz", "label": "Electricidad", "amount": 52811, "scope": "hogar",
-         "detail": "Hogar AMBA sin subsidio (tarifa plena). Con subsidio se paga menos.",
-         "source": "IIEP UBA-CONICET", "confidence": "high"},
-        {"key": "gas", "label": "Gas natural (prom. anual)", "amount": 37000, "scope": "hogar",
-         "detail": "Promedio anual estimado: invierno ~$50.000, verano ~$24.500. Hogar AMBA sin subsidio.",
-         "source": "IIEP UBA-CONICET", "confidence": "medium"},
-        {"key": "agua", "label": "Agua", "amount": 36612, "scope": "hogar",
-         "detail": "AySA, hogar AMBA sin subsidio.", "source": "IIEP UBA-CONICET", "confidence": "high"},
-        {"key": "internet", "label": "Internet", "amount": 23000, "scope": "hogar",
-         "detail": "Plan hogareño ~100–300 Mbps.", "source": "Comparadores de telco", "confidence": "medium"},
-        {"key": "alimentos", "label": "Alimentos (gasto típico)", "amount": 350000, "scope": "hogar",
-         "detail": "Estimación ~1,5–1,7× la Canasta Básica Alimentaria. El piso de indigencia (solo comer) es $220.468 por adulto.",
-         "source": "Estimación s/ INDEC", "confidence": "medium"},
-        {"key": "transporte", "label": "Transporte", "amount": 30000, "scope": "hogar",
-         "detail": "~44 viajes/mes en colectivo (SUBE, con descuentos progresivos). En subte ~$52.000.",
-         "source": "SUBE / Gobierno", "confidence": "medium"},
-        {"key": "celular", "label": "Celular", "amount": 28000, "scope": "hogar",
-         "detail": "Plan individual con datos.", "source": "Comparadores de telco", "confidence": "medium"},
-        {"key": "salud", "label": "Salud (prepaga / obra social)", "amount": 170000, "scope": "hogar",
-         "detail": "Cuota individual de gama media; gran dispersión ($90.000 a >$1.000.000). Con salud pública, $0.",
-         "source": "Prensa (Infobae)", "confidence": "medium"},
+        {
+            "key": "alquiler",
+            "label": "Alquiler",
+            "amount": 668000,
+            "scope": "hogar",
+            "detail": "Cambia según la región (elegí abajo). Promedios 2026 de Zonaprop/Reporte Inmobiliario vía La Nación; precio de oferta, el contrato real suele ser algo menor.",
+            "source": "Zonaprop / Reporte Inmobiliario / La Nación",
+            "confidence": "high",
+        },
+        {
+            "key": "expensas",
+            "label": "Expensas",
+            "amount": 80000,
+            "scope": "hogar",
+            "detail": "Depto estándar sin amenities ($60.000–$100.000). Con amenities, mucho más.",
+            "source": "ConsorcioAbierto / Roomix",
+            "confidence": "medium",
+        },
+        {
+            "key": "luz",
+            "label": "Electricidad",
+            "amount": 52811,
+            "scope": "hogar",
+            "detail": "Hogar AMBA sin subsidio (tarifa plena). Con subsidio se paga menos.",
+            "source": "IIEP UBA-CONICET",
+            "confidence": "high",
+        },
+        {
+            "key": "gas",
+            "label": "Gas natural (prom. anual)",
+            "amount": 37000,
+            "scope": "hogar",
+            "detail": "Promedio anual estimado: invierno ~$50.000, verano ~$24.500. Hogar AMBA sin subsidio.",
+            "source": "IIEP UBA-CONICET",
+            "confidence": "medium",
+        },
+        {
+            "key": "agua",
+            "label": "Agua",
+            "amount": 36612,
+            "scope": "hogar",
+            "detail": "AySA, hogar AMBA sin subsidio.",
+            "source": "IIEP UBA-CONICET",
+            "confidence": "high",
+        },
+        {
+            "key": "internet",
+            "label": "Internet",
+            "amount": 23000,
+            "scope": "hogar",
+            "detail": "Plan hogareño ~100–300 Mbps.",
+            "source": "Comparadores de telco",
+            "confidence": "medium",
+        },
+        {
+            "key": "alimentos",
+            "label": "Alimentos (gasto típico)",
+            "amount": 350000,
+            "scope": "hogar",
+            "detail": "Estimación ~1,5–1,7× la Canasta Básica Alimentaria. El piso de indigencia (solo comer) es $220.468 por adulto.",
+            "source": "Estimación s/ INDEC",
+            "confidence": "medium",
+        },
+        {
+            "key": "transporte",
+            "label": "Transporte",
+            "amount": 30000,
+            "scope": "hogar",
+            "detail": "~44 viajes/mes en colectivo (SUBE, con descuentos progresivos). En subte ~$52.000.",
+            "source": "SUBE / Gobierno",
+            "confidence": "medium",
+        },
+        {
+            "key": "celular",
+            "label": "Celular",
+            "amount": 28000,
+            "scope": "hogar",
+            "detail": "Plan individual con datos.",
+            "source": "Comparadores de telco",
+            "confidence": "medium",
+        },
+        {
+            "key": "salud",
+            "label": "Salud (prepaga / obra social)",
+            "amount": 170000,
+            "scope": "hogar",
+            "detail": "Cuota individual de gama media; gran dispersión ($90.000 a >$1.000.000). Con salud pública, $0.",
+            "source": "Prensa (Infobae)",
+            "confidence": "medium",
+        },
     ],
     # 2-ambientes monthly rent by INDEC region (2026, Zonaprop/Reporte Inmobiliario via La Nación).
     "rent_by_region": {
-        "GBA": 668000, "CABA": 848509, "Pampeana": 640000, "Cuyo": 720000,
-        "NOA": 600000, "NEA": 600000, "Patagonica": 880000,
+        "GBA": 668000,
+        "CABA": 848509,
+        "Pampeana": 640000,
+        "Cuyo": 720000,
+        "NOA": 600000,
+        "NEA": 600000,
+        "Patagonica": 880000,
     },
-    "floor": {"label": "Piso de indigencia (solo alimentos)", "amount": 220468,
-              "detail": "CBA por adulto equivalente, may-2026 — el mínimo para no ser indigente.",
-              "source": "INDEC", "confidence": "high"},
+    "floor": {
+        "label": "Piso de indigencia (solo alimentos)",
+        "amount": 220468,
+        "detail": "CBA por adulto equivalente, may-2026 — el mínimo para no ser indigente.",
+        "source": "INDEC",
+        "confidence": "high",
+    },
     "reference_incomes": {
         "smvm": 367800,
         "jubilacion_minima": 403318,
         "notes": "Salario Mínimo Vital y Móvil (jun-2026, Res. 9/2025) y jubilación mínima bruta (jun-2026, ANSES). "
-                 "Con bono, el piso del jubilado llega a ~$473.318.",
+        "Con bono, el piso del jubilado llega a ~$473.318.",
     },
     # Everyday goods, for the "poder de compra" section — sourced reference prices, mid-2026.
     # All approximate and volatile; vary by brand, place and moment. Each carries its source.
     "goods": [
-        {"key": "nafta", "label": "litros de nafta súper", "unit": "L", "price": 2100,
-         "source": "YPF / indicadores.ar, may-2026", "confidence": "media"},
-        {"key": "asado", "label": "kilos de asado", "unit": "kg", "price": 18000,
-         "source": "IPCVA / prensa, may-2026", "confidence": "media"},
-        {"key": "cafe", "label": "cafés en un bar", "unit": "café", "price": 2000,
-         "source": "prensa (La Nación, Cronista), 2026", "confidence": "baja"},
-        {"key": "bigmac", "label": "Big Macs", "unit": "Big Mac", "price": 7300,
-         "source": "The Economist, Big Mac Index 2026", "confidence": "alta"},
+        {
+            "key": "nafta",
+            "label": "litros de nafta súper",
+            "unit": "L",
+            "price": 2100,
+            "source": "YPF / indicadores.ar, may-2026",
+            "confidence": "media",
+        },
+        {
+            "key": "asado",
+            "label": "kilos de asado",
+            "unit": "kg",
+            "price": 18000,
+            "source": "IPCVA / prensa, may-2026",
+            "confidence": "media",
+        },
+        {
+            "key": "cafe",
+            "label": "cafés en un bar",
+            "unit": "café",
+            "price": 2000,
+            "source": "prensa (La Nación, Cronista), 2026",
+            "confidence": "baja",
+        },
+        {
+            "key": "bigmac",
+            "label": "Big Macs",
+            "unit": "Big Mac",
+            "price": 7300,
+            "source": "The Economist, Big Mac Index 2026",
+            "confidence": "alta",
+        },
     ],
     "caveats": [
         "Son estimados de referencia de fuentes externas (Zonaprop, IIEP-UBA, AySA, prensa), no microdatos: "

@@ -48,6 +48,7 @@ def _next_url() -> str:
 
 # --- pure helpers ---
 
+
 def test_parse_quarter():
     assert watch.parse_quarter("2025-T4") == (2025, 4)
 
@@ -67,6 +68,7 @@ def test_quarter_files():
 
 
 # --- is_available (mocked urllib) ---
+
 
 @pytest.mark.parametrize(
     "status,ctype,expected",
@@ -93,6 +95,7 @@ def test_is_available_network_error(monkeypatch, exc):
 
 
 # --- issue_title / issue_body / pr_body ---
+
 
 def test_issue_title_all_statuses():
     nxt = watch.quarter_files(2026, 1)
@@ -133,6 +136,7 @@ def test_pr_body():
 
 # --- emit_outputs ---
 
+
 def test_emit_outputs_no_env(monkeypatch):
     monkeypatch.delenv("GITHUB_OUTPUT", raising=False)
     watch.emit_outputs({"a": "1"})  # returns early, nothing to assert beyond no crash
@@ -146,6 +150,7 @@ def test_emit_outputs_writes(tmp_path, monkeypatch):
 
 
 # --- detect (status x health matrix) ---
+
 
 def _run_detect(monkeypatch, tmp_path, *, current_ok, new_available, health=False):
     mapping = {config.ZIP_URL: current_ok, _next_url(): new_available}
@@ -208,6 +213,7 @@ def test_detect_new_quarter_with_health_failure(monkeypatch, tmp_path):
 
 
 # --- read_zip_members ---
+
 
 def test_read_zip_members_finds_both(monkeypatch):
     blob = _zip_blob(["usu_individual_T126.txt", "usu_hogar_T126.txt", "readme.md"])
@@ -325,7 +331,7 @@ def test_apply_bump_keeps_real_member_names_the_selector_accepts(tmp_path, monke
     assert watch.apply_bump() == 0
     rewritten = (root / "pipeline" / "config.py").read_text()
     assert 'INDIVIDUAL_FILE = "usu_individual_T126.TXT"' in rewritten  # casing preserved
-    assert 'HOGAR_FILE = "usu hogar T126.Txt"' in rewritten            # spaces preserved
+    assert 'HOGAR_FILE = "usu hogar T126.Txt"' in rewritten  # spaces preserved
     compile(rewritten, "config.py", "exec")
 
 
@@ -343,6 +349,7 @@ def test_apply_bump_missing_field_returns_2(tmp_path, monkeypatch, capsys):
 
 
 # --- main() dispatch + __main__ ---
+
 
 def test_main_detect(monkeypatch):
     monkeypatch.setattr("sys.argv", ["watch"])
