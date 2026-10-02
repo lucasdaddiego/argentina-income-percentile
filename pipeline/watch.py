@@ -11,9 +11,10 @@ Two modes:
              the new zip) and drop data/checksums.txt so it re-pins.
 
 The bump is intentionally only mechanical: it can NOT supply the INDEC validation anchors
-(Gini/median/deciles), which INDEC publishes in its distribution report a few months after
-the microdata. The workflow opens a *draft* PR; a human fills the anchors and runs `make
-data` until the validation gate passes before it can merge.
+(Gini/median/deciles), which are in INDEC's distribution report (a PDF), not in the zip. INDEC
+publishes that report before the microdata, so it already exists when the watch finds the zip.
+The workflow opens a *draft* PR; a human fills the anchors and runs `make data` until the
+validation gate passes before it can merge.
 """
 
 from __future__ import annotations
@@ -126,9 +127,10 @@ def issue_body(status: str, nxt: dict[str, str], health_failed: bool) -> str:
             "3. Refresh the INDEC validation anchors (`INDEC_IPCF_*`) and the reference blocks "
             "(`POVERTY_LINES`, `HISTORY`, `COST_OF_LIVING`) from INDEC's published figures.\n"
             "4. Run `make data` — the validation gate must pass before committing.\n\n"
-            "> ⚠️ The validation anchors come from INDEC's *\"Evolución de la distribución del "
-            'ingreso"* report, released a few months **after** the microdata. If that report '
-            "isn't out yet, hold the bump so the validation gate stays meaningful."
+            "> The validation anchors come from INDEC's *\"Evolución de la distribución del "
+            'ingreso"* report, which INDEC publishes **before** the microdata (1º trim. 2026: '
+            "report 2026-06-25, microdata 2026-08-03; 2º trim. 2026: report 2026-10-01, microdata "
+            "2026-11-04), so the report for this quarter is already out."
         )
     elif status == "source_unreachable":
         parts.append(
@@ -245,8 +247,9 @@ def pr_body(nxt: dict[str, str], individual: str, hogar: str) -> str:
         "- [ ] Run `make data` — the validation gate **must pass**\n"
         "- [ ] Commit the regenerated `data/percentiles.v1.json`, "
         "`web/public/percentiles.v1.json` and `data/checksums.txt`\n\n"
-        "> ⚠️ The anchors come from INDEC's distribution report, released a few months "
-        "**after** the microdata. If it isn't out yet, keep this as a draft."
+        "> The anchors come from INDEC's distribution report, which INDEC publishes **before** the "
+        "microdata (1º trim. 2026: report 2026-06-25, microdata 2026-08-03; 2º trim. 2026: report "
+        "2026-10-01, microdata 2026-11-04), so the report for this quarter is already out."
     )
 
 

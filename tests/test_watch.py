@@ -143,6 +143,15 @@ def test_pr_body():
     assert "usu_hogar_T226.txt" in body
 
 
+def test_bodies_say_the_distribution_report_comes_before_the_microdata():
+    # INDEC publishes the report first (1T-2026: 2026-06-25, microdata 2026-08-03), so the
+    # anchors already exist when the watch finds the zip.
+    nxt = watch.quarter_files(2026, 2)
+    for body in (watch.pr_body(nxt, "i.txt", "h.txt"), watch.issue_body("new_quarter", nxt, False)):
+        assert "**before** the microdata" in body
+        assert "after" not in body
+
+
 def test_pr_body_names_the_poverty_line_month_for_the_quarter():
     # POVERTY_LINES must match the month the quarter's incomes reference: April for a Q2 pin,
     # October for a Q4 pin.
