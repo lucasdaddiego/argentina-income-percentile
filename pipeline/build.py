@@ -134,10 +134,13 @@ def build_splits(df: pd.DataFrame) -> dict:
     pct_list = list(range(1, 100))
     out = {}
     for key, spec in config.SPLITS.items():
-        codes = pd.to_numeric(base[spec["col"]], errors="coerce")
+        sub = base
+        for col, required in spec.get("where", {}).items():
+            sub = sub[pd.to_numeric(sub[col], errors="coerce") == required]
+        codes = pd.to_numeric(sub[spec["col"]], errors="coerce")
         groups = []
         for code, label in spec["groups"].items():
-            g = base[codes == code]
+            g = sub[codes == code]
             if len(g) < config.SPLIT_MIN_N:
                 continue
             v = g[val].to_numpy(dtype=float)

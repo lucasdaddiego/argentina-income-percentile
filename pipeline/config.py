@@ -8,7 +8,7 @@ official figures the pipeline must reproduce.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import TypedDict
+from typing import NotRequired, TypedDict
 
 # --------------------------------------------------------------------------------------
 # Paths
@@ -129,6 +129,7 @@ class SplitSpec(TypedDict):
     col: str
     label: str
     groups: dict[int, str]
+    where: NotRequired[dict[str, int]]  # narrow the perceptor base first: {column: required code}
 
 
 SPLITS: dict[str, SplitSpec] = {
@@ -140,8 +141,10 @@ SPLITS: dict[str, SplitSpec] = {
                              5: "Superior incompleta", 6: "Superior completa"}},
     "cat_ocup": {"col": "CAT_OCUP", "label": "Categoría ocupacional",
                  "groups": {1: "Patrón/a", 2: "Cuenta propia", 3: "Asalariado/a"}},
+    # PP04A is asked of every ocupado, so without the CAT_OCUP=3 filter "Privado" would also hold
+    # the patrones and cuentapropistas the label says it excludes.
     "sector": {"col": "PP04A", "label": "Sector (asalariados)",
-               "groups": {1: "Estatal", 2: "Privado"}},
+               "groups": {1: "Estatal", 2: "Privado"}, "where": {"CAT_OCUP": 3}},
 }
 
 # --------------------------------------------------------------------------------------

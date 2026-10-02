@@ -79,6 +79,19 @@ def test_build_splits(loaded_df, monkeypatch):
         assert len(g["percentiles"]) == 99
 
 
+def test_build_splits_sector_counts_asalariados_only(loaded_df, monkeypatch):
+    """PP04A is answered by every ocupado. The panel is labeled "Sector (asalariados)", so its
+    "Privado" group must not pick up the patrones / cuentapropistas (CAT_OCUP 1/2) or the
+    CAT_OCUP=0 perceptor that also carry PP04A=2 in the fixture."""
+    monkeypatch.setattr(config, "SPLIT_MIN_N", 2)
+    privado = next(g for g in build.build_splits(loaded_df)["sector"]["groups"] if g["key"] == "2")
+    perceptores = loaded_df[loaded_df["DECINDR"].between(1, 10).fillna(False)]
+    perceptores = perceptores[(perceptores["PONDII"] > 0) & (perceptores["P47T"] > 0)]
+    asalariados = perceptores[(perceptores["PP04A"] == 2) & (perceptores["CAT_OCUP"] == 3)]
+    assert len(perceptores[perceptores["PP04A"] == 2]) > len(asalariados)  # the fixture mixes categories
+    assert privado["n"] == len(asalariados)
+
+
 def test_build_splits_high_threshold_drops_everything(loaded_df, monkeypatch):
     # With the real SPLIT_MIN_N=200 our tiny base yields no surviving groups (all dropped).
     monkeypatch.setattr(config, "SPLIT_MIN_N", 200)
