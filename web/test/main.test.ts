@@ -141,6 +141,21 @@ describe("income bands", () => {
     expect($("class-banner").innerHTML).toContain("Indigencia");
   });
 
+  it("says 'menos de 1 de cada 100' below p1, never the p1 numbers", async () => {
+    // $20.000 per person is under p1 ($30.000). The headline said "por debajo del percentil 1"
+    // while the big number read "1º percentil" and "1 de cada 100" had less.
+    await bootSolo(20000);
+    const r = $("result").innerHTML;
+    expect(r).toContain("por debajo del percentil 1");
+    expect(r).toContain("Menos de 1 de cada 100");
+    expect(r).not.toContain("º percentil");
+    expect(r).not.toContain("<strong>1 de cada 100</strong>");
+    const ex = $("headline-explain").innerHTML;
+    expect(ex).toContain("menos de 1</strong> tiene menos que tu hogar");
+    expect(ex).not.toContain("El <strong>percentil 1</strong> significa");
+    expect($("sticky-bar").innerHTML).toContain("debajo del percentil 1");
+  });
+
   it("poverty band (between CBA and CBT)", async () => {
     await bootSolo(300000);
     expect($("poverty-line").innerHTML).toContain("Bajo la línea de pobreza");
@@ -284,6 +299,45 @@ describe("cost & budget", () => {
     expect($("cost-region").innerHTML).toContain("Buenos Aires");
   });
 
+  it("says the minimum wage and pension fall short only when they do, against the edited basket", async () => {
+    await boot();
+    // Default basket ($1.475.423) is above both the SMVM ($367.800) and the jubilación ($403.318).
+    expect($("cost-analysis").innerHTML).toContain("Para ubicarlo entre dos extremos");
+    expect($("cost-analysis").innerHTML).toContain(
+      "El <strong>salario mínimo</strong> ($367.800) y la <strong>jubilación mínima</strong> ($403.318) no alcanzan ni para estos gastos fijos.",
+    );
+    const setCosts = (amounts: Record<string, string>) => {
+      document.querySelectorAll<HTMLInputElement>(".cost-input").forEach((inp) => {
+        inp.value = amounts[inp.dataset.key as string] ?? "0";
+        inp.dispatchEvent(new Event("input"));
+      });
+    };
+    setCosts({ alquiler: "300000" }); // below both
+    expect($("cost-analysis").innerHTML).not.toContain("salario mínimo</strong> (");
+    expect($("cost-analysis").innerHTML).not.toContain("no alcanza");
+    expect($("cost-analysis").innerHTML).toContain("Como referencia");
+    setCosts({ alquiler: "380000" }); // above the SMVM, below the jubilación
+    expect($("cost-analysis").innerHTML).toContain("El <strong>salario mínimo</strong> ($367.800) no alcanza ni para");
+    expect($("cost-analysis").innerHTML).not.toContain("jubilación mínima");
+    setCosts({ alquiler: "390000", expensas: "10000" }); // $400.000: still below the jubilación
+    setCosts({ alquiler: "300000", expensas: "100000", luz: "10000" }); // $410.000: above both
+    expect($("cost-analysis").innerHTML).toContain("no alcanzan ni para");
+  });
+
+  it("counts rents with the rent the user typed, not the region default", async () => {
+    await boot();
+    const rent = document.querySelector<HTMLInputElement>('.cost-input[data-key="alquiler"]') as HTMLInputElement;
+    rent.value = "1.000.000";
+    rent.dispatchEvent(new Event("input"));
+    expect($("buying-grid").innerHTML).toContain("alquiler $1M");
+    expect($("buying-grid").innerHTML).toContain("alquileres como el tuyo");
+    // A region change resets the rent to that region's default, and the label says so again.
+    const region = $i("cost-region");
+    region.value = "CABA";
+    region.dispatchEvent(new Event("change"));
+    expect($("buying-grid").innerHTML).toContain("alquileres (CABA)");
+  });
+
   it("shows a deficit when costs exceed a low income", async () => {
     await bootSolo(150000);
     expect($("cost-analysis").innerHTML).toContain("faltarían");
@@ -304,6 +358,15 @@ describe("time machine", () => {
     setVal("time-infl", "12");
     expect($("time-infl-out").textContent).toBe("12%");
     expect($("time-result").innerHTML).toContain("mediana");
+  });
+
+  it("names the CPI base quarter as the unit, not 'pesos de hoy'", async () => {
+    // The CPI series ends at its base quarter, so realMed is in pesos of that quarter while the
+    // income field holds whatever the user earns now.
+    await boot();
+    const t = $("time-result").innerHTML;
+    expect(t).not.toContain("pesos de hoy");
+    expect(t).toContain(`pesos del ${ARTIFACT.history.cpi_base_label}`);
   });
 
   it("handles an empty inflation value", async () => {

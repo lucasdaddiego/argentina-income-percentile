@@ -171,9 +171,10 @@ function setupSticky() {
   bar.onclick = () => $("controls").scrollIntoView({ behavior: "smooth", block: "start" });
 }
 function renderSticky(v: number, pct: number) {
+  const pctTxt = pct < 1 ? "debajo del percentil 1" : `percentil ${Math.round(Math.min(99, pct))}`;
   $("sticky-bar").innerHTML =
     `<div class="sticky-inner"><span><strong>${fmtARS(v)}</strong> por persona · ` +
-    `<strong>percentil ${Math.round(Math.min(99, pct))}</strong></span><span class="sticky-edit">Editar ↑</span></div>`;
+    `<strong>${pctTxt}</strong></span><span class="sticky-edit">Editar ↑</span></div>`;
 }
 
 // ---------- render ----------
@@ -217,8 +218,17 @@ function renderHeadline(v: number, pct: number) {
 
   const usd = state.blue && v > 0 ? `<span class="usd-eq">≈ ${fmtUSD(v / state.blue.venta)} al dólar blue</span>` : "";
   const deCada = Math.round(Math.min(99, Math.max(1, pct)));
+  // Below p1 the rounded "1" would contradict the headline: fewer than 1 in 100 have less.
+  const belowP1 = pct < 1;
 
-  $("result").innerHTML = `
+  $("result").innerHTML = belowP1
+    ? `
+    <div class="pct-big">&lt;1<span> percentil</span></div>
+    <div class="pct-text">
+      <p class="lead">${headline}</p>
+      <p><strong>Menos de 1 de cada 100</strong> personas tiene un ingreso por persona menor al de tu hogar. ${usd}</p>
+    </div>`
+    : `
     <div class="pct-big">${deCada}<span>º percentil</span></div>
     <div class="pct-text">
       <p class="lead">${headline}</p>
@@ -229,13 +239,17 @@ function renderHeadline(v: number, pct: number) {
   const masN = 100 - deCada;
   const vMenos = deCada === 1 ? "tiene" : "tienen";
   const vMas = masN === 1 ? "tiene" : "tienen";
+  const pctMeaning = belowP1
+    ? `Estar <strong>por debajo del percentil 1</strong> significa que, de cada 100 personas ordenadas por ingreso por persona, ` +
+      `<strong>menos de 1</strong> tiene menos que tu hogar y <strong>más de 99</strong> tienen más. `
+    : `El <strong>percentil ${deCada}</strong> significa que, de cada 100 personas ordenadas por ingreso por persona, ` +
+      `<strong>${deCada}</strong> ${vMenos} menos que tu hogar y <strong>${masN}</strong> ${vMas} más. `;
   const multStr = (v / m.median).toLocaleString("es-AR", { maximumFractionDigits: 1 });
   // The mean sits well above the median, so an income can be above one and below the other.
   const vsBoth =
     v >= m.median && v >= m.mean ? "por encima de los dos" : v < m.median && v < m.mean ? "por debajo de los dos" : "entre la mediana y el promedio";
   $("headline-explain").innerHTML =
-    `El <strong>percentil ${deCada}</strong> significa que, de cada 100 personas ordenadas por ingreso por persona, ` +
-    `<strong>${deCada}</strong> ${vMenos} menos que tu hogar y <strong>${masN}</strong> ${vMas} más. ` +
+    pctMeaning +
     `Tu hogar cae en el <strong>decil ${decile} de 10</strong>.<br><br>` +
     `La <strong>mediana</strong> es el ingreso que deja a la mitad de la gente por debajo y a la otra mitad por encima: ` +
     `hoy son <strong>${fmtARS(m.median)}</strong> por persona. El <strong>promedio</strong> —lo que le tocaría a cada uno ` +
@@ -666,15 +680,19 @@ function updateTime() {
   const ci = idx.get(qsel);
   const med = medMap.get(qsel);
   if (!ci || med == null) return;
-  const realMed = (med * 100) / ci; // that quarter's median, in today's pesos
+  // That quarter's median in pesos of the CPI base quarter: the series ends there, so later inflation
+  // (between the base and the day the user's income is from) is not in this comparison.
+  const realMed = (med * 100) / ci;
+  const base = data.history.cpi_base_label;
   const ratio = v / realMed;
   const infl = parseInt($<HTMLInputElement>("time-infl").value || "0", 10) / 100;
   const need = H * (1 + infl);
   $("time-result").innerHTML =
-    `Tu ingreso por persona (<strong>${fmtARS(v)}</strong>, en pesos de hoy) equivale a <strong>${fmtX(ratio)}</strong> la mediana de ` +
-    `${quarterLabel(qsel)} —que medida en pesos de hoy era <strong>${fmtARS(realMed)}</strong>—. ` +
+    `Tu ingreso por persona (<strong>${fmtARS(v)}</strong>) equivale a <strong>${fmtX(ratio)}</strong> la mediana de ` +
+    `${quarterLabel(qsel)} —que medida en pesos del ${base} era <strong>${fmtARS(realMed)}</strong>—. ` +
     `Y si el próximo trimestre la inflación fuera <strong>${Math.round(infl * 100)}%</strong>, para no perder poder de compra lo que entra a tu hogar ` +
-    `debería pasar de ${fmtARS(H)} a <strong>${fmtARS(need)}</strong>.`;
+    `debería pasar de ${fmtARS(H)} a <strong>${fmtARS(need)}</strong>.<br>` +
+    `<span class="muted">El IPC de esta comparación llega hasta el ${base}: si tu ingreso es de un mes posterior, la inflación desde entonces no está descontada.</span>`;
 }
 
 function renderTrendsText() {
@@ -804,6 +822,7 @@ function renderCost() {
       reformatWithCaret(inp);
       state.costValues[inp.dataset.key as string] = parseMoney(inp.value);
       recomputeBudget();
+      renderBuyingPower(); // the rent tile follows the edited rent
     });
   });
 
@@ -826,14 +845,23 @@ export function recomputeBudget() {
   const ratio = total > 0 ? H / total : 0;
   const leftover = H - total;
   const cbtHogar = data.poverty_lines.cbt_adulto_equiv * N;
+  // Only claim the minimum wage / pension fall short of the basket the user actually has.
+  const ri = c.reference_incomes;
+  const short: string[] = [];
+  if (ri.smvm < total) short.push(`el <strong>salario mínimo</strong> (${fmtARS(ri.smvm)})`);
+  if (ri.jubilacion_minima < total) short.push(`la <strong>jubilación mínima</strong> (${fmtARS(ri.jubilacion_minima)})`);
+  const who = short.join(" y ");
+  const shortTxt = short.length
+    ? ` ${who[0].toUpperCase()}${who.slice(1)} no ${short.length === 1 ? "alcanza" : "alcanzan"} ni para estos gastos fijos.`
+    : "";
   const verdict =
     leftover >= 0
       ? `Tu ingreso del hogar (<strong>${fmtARS(H)}</strong>) cubre esa canasta <strong>${fmtX(ratio)}</strong>: te quedarían <strong>${fmtARS(leftover)}</strong> por mes para todo lo demás (ahorro, deudas, gustos).`
       : `Tu ingreso del hogar (<strong>${fmtARS(H)}</strong>) alcanza para el <strong>${Math.round(ratio * 100)}%</strong> de esa canasta: faltarían <strong>${fmtARS(-leftover)}</strong> por mes. Por eso muchos hogares recortan (alquiler más barato, salud pública, menos consumo).`;
   $("cost-analysis").innerHTML =
     `Esta canasta de gastos del hogar suma <strong>${fmtARS(total)}</strong> por mes. ${verdict}<br><br>` +
-    `Para ubicarlo entre dos extremos: la <strong>línea de pobreza</strong> de tu hogar de ${N} ${N === 1 ? "persona" : "personas"} (lo mínimo para no ser pobre) es ~${fmtARS(cbtHogar)}. ` +
-    `El <strong>salario mínimo</strong> (${fmtARS(c.reference_incomes.smvm)}) y la <strong>jubilación mínima</strong> (${fmtARS(c.reference_incomes.jubilacion_minima)}) no alcanzan ni para los gastos fijos de un hogar.`;
+    `${short.length ? "Para ubicarlo entre dos extremos" : "Como referencia"}: la <strong>línea de pobreza</strong> de tu hogar de ${N} ${N === 1 ? "persona" : "personas"} (lo mínimo para no ser pobre) es ~${fmtARS(cbtHogar)}.` +
+    shortTxt;
 
   charts.renderBudget($("chart-budget"), H, lines, N);
 }
@@ -858,8 +886,10 @@ function renderBuyingPower() {
   const cbtHogar = pl.cbt_adulto_equiv * state.people;
   tiles.push(tile(cnt(H / cbtHogar), `canastas básicas (hogar de ${state.people})`, `1 canasta ${fmtShort(cbtHogar)}`));
   if (c.reference_incomes?.smvm) tiles.push(tile(cnt(H / c.reference_incomes.smvm), "salarios mínimos", `SMVM ${fmtShort(c.reference_incomes.smvm)}`));
-  const rent = rentDefault(state.costRegion);
-  if (rent) tiles.push(tile(cnt(H / rent), `alquileres (${state.costRegion})`, `alquiler ${fmtShort(rent)}`));
+  // The rent the user sees (and may have edited) in the cost table, not the region default.
+  const rent = effectiveCostLines().find((l) => l.key === "alquiler")?.amount ?? 0;
+  const rentLabel = rent === rentDefault(state.costRegion) ? `alquileres (${state.costRegion})` : "alquileres como el tuyo";
+  if (rent) tiles.push(tile(cnt(H / rent), rentLabel, `alquiler ${fmtShort(rent)}`));
   for (const g of c.goods ?? []) {
     const per = g.unit === "L" ? "/L" : g.unit === "kg" ? "/kg" : " c/u";
     tiles.push(tile(cnt(H / g.price), g.label, `$${fmtNum(g.price)}${per}`));
