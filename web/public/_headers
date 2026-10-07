@@ -1,12 +1,20 @@
 # Cloudflare Pages headers. Vite copies web/public/ verbatim into web/dist/.
 
-# Vite names every file under /assets/ (the JS and the CSS) by a hash of its content. New content
-# gets a new name, so cache these hard.
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: interest-cohort=()
+  X-Frame-Options: DENY
+  Content-Security-Policy: default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self' https://dolarapi.com; base-uri 'self'; frame-ancestors 'none'
+
+# Vite names every file under /assets/ by a hash of its content: the JS, the CSS and the data
+# artifact the page loads (/assets/percentiles.v1-<hash>.json). New content gets a new name, so
+# cache these hard.
 /assets/*
   Cache-Control: public, max-age=31536000, immutable
 
-# The data artifact keeps a fixed name ("v1" is the schema version, not a content hash), so a data
-# refresh reuses the same URL: revalidate on every request (304 when unchanged).
+# The fixed-name copy of the artifact, kept for direct links. "v1" is the schema version, not a
+# content hash, so the name stays the same when the data changes: revalidate on every request.
 /percentiles.v1.json
   Cache-Control: no-cache
 

@@ -13,9 +13,10 @@ User-agent: *
 Content-Signal: search=yes,ai-train=no,use=reference
 Allow: /
 
-# Nothing is disallowed on purpose: the page renders client-side from
-# /percentiles.v1.json, so a crawler that cannot fetch that file sees an empty
-# shell. Blocking the data artifact would cost the search listing, not protect it.
+# Nothing is disallowed on purpose: the page renders client-side from the data
+# artifact (/assets/percentiles.v1-<hash>.json), so a crawler that cannot fetch
+# that file sees an empty shell.
+# Blocking the data artifact would cost the search listing, not protect it.
 
 # No AI model training. The AI *search* bots (OAI-SearchBot, Claude-SearchBot,
 # PerplexityBot) are left out on purpose: being cited there is fine.
