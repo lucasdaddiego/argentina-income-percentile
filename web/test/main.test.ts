@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import indexHtml from "../index.html?raw";
 import artifactUrl from "../public/percentiles.v1.json?url";
-import { fmtARS } from "../src/format";
+import { fmtARS, fmtMonth, fmtPct } from "../src/format";
 import { ARTIFACT } from "./fixture";
 
 const BLUE = { venta: 1450, fechaActualizacion: "2026-06-26" };
@@ -275,8 +275,12 @@ describe("income bands", () => {
 
   it("captions the steepness chart when every milestone is passed on the first render", async () => {
     // straight into the top 1% (no earlier render to leave a caption behind): renderMilestones
-    // returns early, but renderVisuals still draws #chart-steepness, so it needs its caption
-    await boot({ presetIncome: "4000000", presetPeople: "1" });
+    // returns early, but renderVisuals still draws #chart-steepness, so it needs its caption.
+    // The preset is dated the newest CPI month (the default), so type 4.000.000 survey pesos in
+    // that month's pesos: the amount stays top 1% whatever vintage the CPI sync has published.
+    const c = ARTIFACT.cpi_monthly;
+    const factor = c.months[0].index / c.months[c.months.length - 1].index;
+    await boot({ presetIncome: String(Math.ceil(4000000 / factor)), presetPeople: "1" });
     expect($("milestones").innerHTML).toContain("superó todos");
     expect($("chart-steepness").innerHTML).toContain("svg");
     expect($("foot-steepness").textContent).toContain("percentil");
@@ -319,11 +323,11 @@ describe("mes de tu ingreso (deflation to the survey month)", () => {
     setVal("income-number", "600000");
     const c = ARTIFACT.cpi_monthly;
     const factor = c.months[0].index / c.months[c.months.length - 1].index;
-    const v = 600000 * factor; // ≈ $496.435 of October 2025 for $600.000 of May 2026
+    const v = 600000 * factor; // survey-month pesos for $600.000 of the newest CPI month
     expect(factor).toBeLessThan(0.9);
     expect($("per-person-val").textContent).toBe("$600.000"); // the arithmetic the user typed
     expect($("per-person").innerHTML).toContain(`son <strong>${fmtARS(v)}</strong> por persona en pesos de ${c.reference_label}`);
-    expect($("per-person").innerHTML).toContain("descontada la inflación entre ambos (20,9%)");
+    expect($("per-person").innerHTML).toContain(`descontada la inflación entre ambos (${fmtPct((1 / factor - 1) * 100)})`);
     expect($("sticky-bar").innerHTML).toContain(`<strong>${fmtARS(v)}</strong> por persona (pesos de ${c.reference_label})`);
     expect($("poverty-line").innerHTML).toContain(`<strong>${fmtARS(v)}</strong>`); // the lookups use the deflated value
     const deflated = Number($("result").innerHTML.match(/percentil (\d+)/)![1]);
@@ -340,8 +344,8 @@ describe("mes de tu ingreso (deflation to the survey month)", () => {
     await boot();
     const opts = [...$i("income-month").querySelectorAll("option")];
     expect(opts.map((o) => o.value)).toEqual(ARTIFACT.cpi_monthly.months.map((m) => m.period));
-    expect(opts[0].textContent).toBe("octubre 2025");
-    expect(opts[opts.length - 1].textContent).toBe("mayo 2026");
+    expect(opts[0].textContent).toBe(fmtMonth(REF_MONTH));
+    expect(opts[opts.length - 1].textContent).toBe(fmtMonth(LAST_MONTH));
   });
 
   it("deflates the cohort income the same way and says so", async () => {
@@ -360,7 +364,7 @@ describe("mes de tu ingreso (deflation to the survey month)", () => {
     await boot();
     expect($("buying-grid").innerHTML).toContain(`, ${ARTIFACT.poverty_lines.period_label}`);
     expect($("time-result").innerHTML).toContain(`pesos de ${ARTIFACT.cpi_monthly.reference_label}`);
-    expect($("methodology-body").innerHTML).toContain("IPC disponible hasta mayo 2026");
+    expect($("methodology-body").innerHTML).toContain(`IPC disponible hasta ${fmtMonth(LAST_MONTH)}`);
   });
 });
 
