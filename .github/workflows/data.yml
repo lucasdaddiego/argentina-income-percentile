@@ -2,8 +2,10 @@ name: Data reproduces INDEC
 
 # The pipeline must still reproduce INDEC's published figures (`make data`), and the committed
 # artifact must match what the pipeline emits. Path-filtered to the pipeline/data files so a
-# web-only PR doesn't depend on INDEC's server; the pinned source zip is cached on its checksum
-# so reruns don't re-download it.
+# web-only PR doesn't depend on INDEC's server — but web/public/percentiles.v1.json is one of the
+# two committed copies of the artifact, so it is in the filter too: editing the *served* copy alone
+# must not skip the only gate that checks it. The pinned source zip is cached on its checksum so
+# reruns don't re-download it.
 #
 # Note: a PR/branch created by the monthly data-update workflow's GITHUB_TOKEN will NOT trigger
 # this CI (a GitHub limitation). Checks appear once a human pushes to the bump branch. If you
@@ -15,6 +17,7 @@ on:
     paths:
       - "pipeline/**"
       - "data/**"
+      - "web/public/percentiles.v1.json"
       - "Makefile"
       - "pyproject.toml"
       - "uv.lock"
@@ -24,6 +27,7 @@ on:
     paths:
       - "pipeline/**"
       - "data/**"
+      - "web/public/percentiles.v1.json"
       - "Makefile"
       - "pyproject.toml"
       - "uv.lock"
@@ -34,7 +38,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: ci-data-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -42,14 +46,19 @@ jobs:
     name: Pipeline reproduces INDEC
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # Before `make data` overwrites them both: the committed provenance copy and the served copy
+      # are written from one payload, so any divergence is a bad merge or a half-staged rebuild.
+      - name: The two committed copies of the artifact are identical
+        run: diff -q data/percentiles.v1.json web/public/percentiles.v1.json
       - name: Install uv
-        # setup-uv publishes no floating major tag past v7, so pin the exact release.
-        uses: astral-sh/setup-uv@v10.2.0
+        uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
       - name: Sync Python deps
         run: uv sync
       - name: Cache the pinned INDEC source (keyed on the checksum pin)
-        uses: actions/cache@v6
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: data/raw
           key: eph-raw-${{ hashFiles('data/checksums.txt') }}

@@ -1,7 +1,7 @@
 # Argentina Income Percentile
 
 [![Live demo](https://img.shields.io/badge/demo-live-F38020?logo=cloudflare&logoColor=white)](https://argentina-income-analyzer.pages.dev)
-[![CI (web)](https://github.com/lucasdaddiego/argentina-income-percentile/actions/workflows/ci.yml/badge.svg)](https://github.com/lucasdaddiego/argentina-income-percentile/actions/workflows/ci.yml)
+[![Web (test + deploy)](https://github.com/lucasdaddiego/argentina-income-percentile/actions/workflows/deploy.yml/badge.svg)](https://github.com/lucasdaddiego/argentina-income-percentile/actions/workflows/deploy.yml)
 [![Python checks](https://github.com/lucasdaddiego/argentina-income-percentile/actions/workflows/python.yml/badge.svg)](https://github.com/lucasdaddiego/argentina-income-percentile/actions/workflows/python.yml)
 [![Data reproduces INDEC](https://github.com/lucasdaddiego/argentina-income-percentile/actions/workflows/data.yml/badge.svg)](https://github.com/lucasdaddiego/argentina-income-percentile/actions/workflows/data.yml)
 
@@ -39,7 +39,12 @@ It has two parts:
 - **Two distinct measures.** "Tu ingreso personal" (P47T) and "ingreso por persona del hogar" (IPCF)
   answer different questions and are labeled as such. The poverty overlay uses IPCF, as INDEC does.
 - **Provenance.** The source zip is pinned by SHA-256; the artifact embeds the period, checksum, and
-  sample size. A validation gate fails the build if it stops matching INDEC's published figures.
+  sample size. A validation gate fails the build if it stops matching INDEC's published figures —
+  Gini, mean, median, population, every decile's share and mean, and every decile cutoff to the peso.
+- **Your income, in survey pesos.** The survey holds nominal pesos of its reference month (October
+  2025 for the 4º trimestre). The app asks which month your income is from and brings it back to
+  that month with INDEC's monthly IPC (`CPI_MONTHLY` in `config.py`, copied from the spliced series
+  of [peso](https://github.com/lucasdaddiego/peso)) before the lookup, and says so next to the result.
 
 ## Quickstart
 
@@ -98,18 +103,19 @@ docs/       metodologia.md
 
 Both layers are gated at **100% coverage** — statements **and** branches:
 
-- **`pipeline/`** — `pytest` against a tiny synthetic EPH fixture (no network, no real microdata), 93 tests.
-- **`web/src/`** — `vitest` + `jsdom`, every render path exercised against the committed artifact, 144 tests.
+- **`pipeline/`** — `pytest` against a tiny synthetic EPH fixture (no network, no real microdata).
+- **`web/src/`** — `vitest` + `jsdom`, every render path exercised against the committed artifact.
 
-`make test` runs both; `make lint` runs `ruff` + `mypy` + `tsc`. Five GitHub Actions run on every
-push/PR, path-filtered so a web-only change never reaches for INDEC:
+`make test` runs both; `make lint` runs `ruff` + `mypy` + `tsc`. GitHub Actions enforce it, three
+on every push/PR (path-filtered so a web-only change never reaches for INDEC) and one on a monthly
+schedule; every action is pinned to a commit SHA and Dependabot (`.github/dependabot.yml`) keeps the
+pins, npm and uv current:
 
 | Workflow | What it checks |
 | --- | --- |
-| `ci.yml` | web typecheck + `vitest` 100% gate + production build |
-| `deploy.yml` | web build + Cloudflare Pages deploy (production on `master`, preview per PR) |
+| `deploy.yml` | web typecheck + `vitest` 100% gate + production build, then (only if that passed) the Cloudflare Pages deploy: production on `master`, preview per PR |
 | `python.yml` | `ruff` + `mypy` + `pytest` 100% gate (offline, fast) |
-| `data.yml` | the pipeline still reproduces INDEC, and the committed artifact matches the rebuild |
+| `data.yml` | the two committed copies of the artifact are identical, the pipeline still reproduces INDEC, and the committed artifact matches the rebuild |
 | `data-update.yml` | monthly watch — opens a draft PR when a newer EPH quarter is published |
 
 ## Reproducibility
@@ -126,12 +132,15 @@ only those quarters, from a 4º trimestre pin the next 2º and from a 2º the ne
 ## Deploy
 
 Static bundle + one JSON → ideal for **Cloudflare Pages** (`web/dist/`). `web/public/_headers`
-caches the content-hashed JS/CSS under `/assets/` for a year (immutable) and revalidates
-`index.html` and the fixed-name `percentiles.v1.json` on every request. Live at
+sets the security headers (CSP, `X-Frame-Options`, nosniff, referrer and permissions policies),
+caches the content-hashed JS/CSS/data under `/assets/` for a year (immutable) and revalidates
+`index.html` and the fixed-name `percentiles.v1.json` (kept for direct links; the page loads the
+hashed copy) on every request. Live at
 **[argentina-income-analyzer.pages.dev](https://argentina-income-analyzer.pages.dev)**. `deploy.yml`
-publishes it from CI: every push to `master` that touches `web/` goes to production and PRs get a
-per-branch preview (needs the `CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID` secrets; without them
-the job still builds and just skips the deploy). `make deploy` does the same by hand.
+publishes it from CI once the web tests pass: every push to `master` that touches `web/` goes to
+production and PRs get a per-branch preview (needs the `CLOUDFLARE_API_TOKEN` /
+`CLOUDFLARE_ACCOUNT_ID` secrets; without them the job still builds and just skips the deploy).
+`make deploy` does the same by hand.
 
 ## Two tiers of data (important)
 
@@ -147,6 +156,8 @@ The app deliberately separates two kinds of figures:
 2. **Reference layer — external sourced estimates** (clearly flagged as such in the UI), stored as
    dated, cited blocks in `pipeline/config.py`:
    - `HISTORY` — Gini (quarterly) + poverty/indigence (semestral) + nominal median, from INDEC press reports.
+   - `CPI_MONTHLY` — INDEC's monthly IPC from the survey's reference month on, copied from peso's
+     spliced artifact; deflates the typed income to survey pesos.
    - `POVERTY_LINES` — CBA/CBT per adulto equivalente (period-matched to the income vintage).
    - `COST_OF_LIVING` — rent, utilities, food, transport, internet, health + SMVM/jubilación, gathered
      mid-2026 from Zonaprop, IIEP-UBA/CONICET, AySA, telco comparators and press. These vary widely by

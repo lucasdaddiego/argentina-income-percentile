@@ -1,8 +1,11 @@
-name: Deploy (Cloudflare Pages)
+name: Web (test + deploy)
 
-# Build the static site and publish it to Cloudflare Pages.
+# One workflow for the web app, two jobs: `test` (typecheck, unit tests with the 100% coverage
+# gate, production build) and `deploy`, which `needs: test`, so nothing reaches Cloudflare Pages
+# that did not pass the tests on the same commit.
 #   • push to master / main  -> production deploy (argentina-income-analyzer.pages.dev)
-#   • pull request           -> preview deploy on a per-branch URL
+#   • pull request           -> preview deploy on a per-branch URL (same-repo PRs only: a fork PR
+#                               gets no secrets, so it runs `test` alone)
 #
 # Path-filtered to the web app. The committed data artifact lives in
 # web/public/percentiles.v1.json, so a `make data` refresh that updates it also redeploys.
@@ -10,8 +13,10 @@ name: Deploy (Cloudflare Pages)
 # Requires two repository secrets (Settings -> Secrets and variables -> Actions):
 #   CLOUDFLARE_API_TOKEN   — a token with the "Account · Cloudflare Pages · Edit" permission
 #   CLOUDFLARE_ACCOUNT_ID  — the Cloudflare account id that owns the Pages project
-# Until CLOUDFLARE_API_TOKEN is set the job still builds, but skips the deploy (with a warning)
-# rather than failing red.
+# Until CLOUDFLARE_API_TOKEN is set the deploy job still builds, but skips the upload (with a
+# warning) rather than failing red.
+#
+# Every action is pinned to a commit SHA (the comment names the tag); Dependabot moves both.
 
 on:
   push:
@@ -28,21 +33,49 @@ on:
 permissions:
   contents: read
 
+# A newer push to the same PR cancels the superseded run; a production deploy is never cancelled
+# mid-upload.
 concurrency:
-  group: deploy-${{ github.ref }}
-  cancel-in-progress: true
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  test:
+    name: Typecheck + tests (100% coverage) + build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Install web deps
+        run: npm ci
+        working-directory: web
+      - name: Unit tests + coverage (100% gate)
+        run: npm run test:cov
+        working-directory: web
+      - name: Typecheck + build
+        run: npm run build
+        working-directory: web
+
   deploy:
     name: Build + deploy
+    needs: test
     runs-on: ubuntu-latest
-    # Fork PRs don't receive the deploy secrets — skip them (ci.yml still tests them).
+    # Fork PRs don't receive the deploy secrets — skip them (the test job above still ran).
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Set up Node
-        uses: actions/setup-node@v7
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: "24"
           cache: npm
@@ -69,7 +102,7 @@ jobs:
       - name: Deploy to Cloudflare Pages
         if: steps.gate.outputs.ready == 'true'
         id: deploy
-        uses: cloudflare/wrangler-action@v4
+        uses: cloudflare/wrangler-action@953926a2e2182532811c01a25e53647d93bf07c0 # v4.1.3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

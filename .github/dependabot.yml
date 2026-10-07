@@ -1,0 +1,19 @@
+# Weekly version updates. The GitHub Actions entry keeps the SHA pins (and their version comments)
+# in .github/workflows current; npm covers web/package-lock.json; uv covers uv.lock.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+  - package-ecosystem: npm
+    directory: /web
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+  - package-ecosystem: uv
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
