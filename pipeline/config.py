@@ -206,6 +206,33 @@ POVERTY_LINES = {
 
 
 # --------------------------------------------------------------------------------------
+# Monthly CPI, for the web app's "mes de tu ingreso" control: the distribution holds nominal
+# pesos of the survey's reference month (POVERTY_LINES["period"], ~October 2025 for a 4º
+# trimestre), so an income typed months later is brought back to that month with the IPC before
+# the percentile lookup. Without it a May-2026 household at the then-median read "percentil 58".
+# Index: INDEC IPC Nacional nivel general (datos.gob.ar serie 148.3_INIVELNAL_DICI_M_26) as
+# spliced and rebased by lucasdaddiego/peso (data/series.v1.json, vintage 2026-05 = 100). Only
+# the ratio between months is used, so the base does not matter. Hand-copied from that artifact:
+# on each refresh append the months peso has published since (its monthly watch bumps them).
+# --------------------------------------------------------------------------------------
+CPI_MONTHLY = {
+    "reference_month": POVERTY_LINES["period"],
+    "reference_label": POVERTY_LINES["period_label"],
+    "source": "INDEC IPC Nacional (serie 148.3_INIVELNAL_DICI_M_26 vía datos.gob.ar), empalme de lucasdaddiego/peso series.v1.json, vintage 2026-05",
+    "months": [
+        {"period": "2025-10", "index": 82.739179},
+        {"period": "2025-11", "index": 84.785253},
+        {"period": "2025-12", "index": 87.197624},
+        {"period": "2026-01", "index": 89.710327},
+        {"period": "2026-02", "index": 92.308625},
+        {"period": "2026-03", "index": 95.431077},
+        {"period": "2026-04", "index": 97.895279},
+        {"period": "2026-05", "index": 100.0},
+    ],
+}
+
+
+# --------------------------------------------------------------------------------------
 # Validation anchors — INDEC "Evolución de la distribución del ingreso (EPH), 4º trim. 2025"
 # (Informes técnicos Vol. 10 nº 82, pub. 2026-04-06). The pipeline MUST reproduce these
 # for IPCF (the measure INDEC publishes), or the build fails.

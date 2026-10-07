@@ -202,6 +202,7 @@ def build() -> dict:
         "poverty_lines": config.POVERTY_LINES,
         "indec_reference_ipcf": config.INDEC_IPCF_Q4_2025,
         "history": config.HISTORY,
+        "cpi_monthly": config.CPI_MONTHLY,
         "cost_of_living": config.COST_OF_LIVING,
         "citation": config.CITATION,
     }

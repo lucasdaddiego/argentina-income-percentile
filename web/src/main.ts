@@ -1,9 +1,12 @@
 import "./styles.css";
 import * as charts from "./charts";
-import { fmtARS, fmtUSD, fmtNum, fmtPct, fmtShort, parseMoney } from "./format";
+import { fmtARS, fmtMonth, fmtUSD, fmtNum, fmtPct, fmtShort, parseMoney } from "./format";
 import { percentileOfIncome, decileOf } from "./stats";
 import { fetchBlue, type BlueRate } from "./usd";
 import type { Artifact, CostLine, IncomeClass, Measure } from "./types";
+// ?url makes Vite emit a content-hashed copy (/assets/percentiles.v1-<hash>.json) and return its
+// URL, so a data refresh gets a new name and a long browser cache can never serve the old values.
+import artifactUrl from "../public/percentiles.v1.json?url";
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
 // Read a CSS custom property off :root (resolves to the active light/dark theme).
@@ -17,6 +20,9 @@ export const fmtPeople = (n: number) =>
   n >= 1e6 ? `${fmtM(n / 1e6)} M` : n >= 1e3 ? `~${Math.round(n / 1e3).toLocaleString("es-AR")} mil` : "menos de mil";
 const signedARS = (n: number) => (n >= 0 ? "+" : "−") + fmtARS(Math.abs(n));
 const signedPct = (n: number) => (n >= 0 ? "+" : "−") + fmtPct(Math.abs(n * 100));
+// For attribute contexts (title="…"): artifact strings land there verbatim, and one `"` would end
+// the attribute early.
+const escAttr = (v: string) => v.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
 
 // "La cima" worked example: a very-high per-person income, used to show the percentile saturates.
 const EXAMPLE_TOP_ARS = 100_000_000;
@@ -29,21 +35,25 @@ const state = {
   costValues: {} as Record<string, number>,
   blue: null as BlueRate | null,
   geoView: "region" as "region" | "aglo",
+  incomeMonth: "", // the month the typed income is from; seeded from the artifact's newest CPI month
 };
 
 let data: Artifact;
 
 async function init() {
-  data = await fetch("/percentiles.v1.json").then((r) => r.json());
-  state.blue = await fetchBlue();
-  // If the live blue rate is unavailable, keep the USD toggle disabled (ARS-only) so it can't
-  // silently no-op on click.
-  if (!state.blue) {
-    const usdBtn = $("currency-toggle").querySelector<HTMLButtonElement>('[data-cur="USD"]');
-    if (usdBtn) {
-      usdBtn.disabled = true;
-      usdBtn.title = "Cotización del dólar no disponible ahora";
-    }
+  try {
+    const res = await fetch(artifactUrl);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    data = await res.json();
+  } catch {
+    $("source-badge").textContent = "No se pudieron cargar los datos. Recargá la página.";
+    return;
+  }
+  // The USD toggle needs the live blue, which lands after the first paint (below): disabled till then.
+  const usdBtn = $("currency-toggle").querySelector<HTMLButtonElement>('[data-cur="USD"]');
+  if (usdBtn) {
+    usdBtn.disabled = true;
+    usdBtn.title = "Buscando la cotización del dólar…";
   }
   // Stateless: no params, no storage, no cookies. Strip any stray query string on load.
   if (location.search) history.replaceState(null, "", location.pathname);
@@ -55,7 +65,9 @@ async function init() {
   // Seed state from the rendered controls so the two can't drift (matches the HTML defaults).
   state.hhIncomeARS = parseMoney($<HTMLInputElement>("income-number").value) || state.hhIncomeARS;
   state.people = Math.max(1, parseInt($<HTMLInputElement>("hh-size").value || "1", 10));
+  state.incomeMonth = data.cpi_monthly.months[data.cpi_monthly.months.length - 1].period;
 
+  renderMonthSetup();
   wireControls();
   setupSticky();
   renderMethodology();
@@ -65,6 +77,23 @@ async function init() {
   renderTimeSetup();
   syncInputs();
   renderAll();
+
+  // The live blue decorates an already-complete page (the USD line in the headline, the dollar
+  // tile, the USD toggle). Awaiting it before rendering would let a stalled dolarapi.com
+  // (connected but never answering, so the catch in usd.ts never fires) hold the whole page blank
+  // until the browser's own network timeout. Decorate afterwards instead.
+  void fetchBlue().then((blue) => {
+    state.blue = blue;
+    if (!usdBtn) return;
+    if (blue) {
+      usdBtn.disabled = false;
+      usdBtn.title = "";
+      renderAll();
+    } else {
+      // Keep the toggle disabled (ARS-only) so it can't silently no-op on click.
+      usdBtn.title = "Cotización del dólar no disponible ahora";
+    }
+  });
 
   let t: number;
   window.addEventListener("resize", () => {
@@ -77,7 +106,41 @@ async function init() {
 }
 
 const measure = (): Measure => data.measures.ipcf;
-const ipcf = (): number => state.hhIncomeARS / Math.max(1, state.people);
+const nominalPerPerson = (): number => state.hhIncomeARS / Math.max(1, state.people);
+/** The per-person income in pesos of the survey's reference month: what the distribution ranks. */
+const ipcf = (): number => nominalPerPerson() * deflator();
+
+// The distribution holds nominal pesos of the survey's reference month (~October 2025 for a 4º
+// trimestre). An income typed months later buys less per peso, so it is brought back to that month
+// with the IPC before any lookup; otherwise a household at the then-median in May-2026 pesos read
+// "percentil 58". Ratio of two index points, so the series' base is irrelevant.
+function deflator(): number {
+  const c = data.cpi_monthly;
+  const by = Object.fromEntries(c.months.map((m) => [m.period, m.index]));
+  return by[c.reference_month] / by[state.incomeMonth];
+}
+const sameMonthAsSurvey = (): boolean => state.incomeMonth === data.cpi_monthly.reference_month;
+
+function renderMonthSetup() {
+  const sel = $<HTMLSelectElement>("income-month");
+  sel.innerHTML = data.cpi_monthly.months.map((m) => `<option value="${m.period}">${fmtMonth(m.period)}</option>`).join("");
+  sel.value = state.incomeMonth;
+  sel.addEventListener("change", () => {
+    state.incomeMonth = sel.value;
+    renderAll();
+    updateCohort();
+  });
+}
+
+/** Mark `btn` as the pressed option of a segmented toggle (the class and aria-pressed together). */
+function pressOnly(group: HTMLElement, btn: HTMLButtonElement) {
+  group.querySelectorAll(".seg-btn").forEach((b) => {
+    b.classList.remove("is-active");
+    b.setAttribute("aria-pressed", "false");
+  });
+  btn.classList.add("is-active");
+  btn.setAttribute("aria-pressed", "true");
+}
 
 // ---------- controls ----------
 function wireControls() {
@@ -86,8 +149,7 @@ function wireControls() {
       const cur = btn.dataset.cur as "ARS" | "USD";
       if (cur === "USD" && !state.blue) return;
       state.currency = cur;
-      $("currency-toggle").querySelectorAll(".seg-btn").forEach((b) => b.classList.remove("is-active"));
-      btn.classList.add("is-active");
+      pressOnly($("currency-toggle"), btn);
       $("cur-prefix").textContent = cur === "USD" ? "US$" : "$";
       syncInputs();
       renderAll();
@@ -126,8 +188,7 @@ function wireControls() {
   $("geo-toggle").querySelectorAll<HTMLButtonElement>(".seg-btn").forEach((btn) => {
     btn.onclick = () => {
       state.geoView = btn.dataset.geo as "region" | "aglo";
-      $("geo-toggle").querySelectorAll(".seg-btn").forEach((b) => b.classList.remove("is-active"));
-      btn.classList.add("is-active");
+      pressOnly($("geo-toggle"), btn);
       renderGeo();
     };
   });
@@ -172,9 +233,10 @@ function setupSticky() {
 }
 function renderSticky(v: number, pct: number) {
   const pctTxt = pct < 1 ? "debajo del percentil 1" : `percentil ${Math.round(Math.min(99, pct))}`;
+  const when = sameMonthAsSurvey() ? "" : ` (pesos de ${data.cpi_monthly.reference_label})`;
   $("sticky-bar").innerHTML =
-    `<div class="sticky-inner"><span><strong>${fmtARS(v)}</strong> por persona · ` +
-    `<strong>${pctTxt}</strong></span><span class="sticky-edit">Editar ↑</span></div>`;
+    `<div class="sticky-inner"><span><strong>${fmtARS(v)}</strong> por persona${when} · ` +
+    `<strong>${pctTxt}</strong></span><button type="button" class="sticky-edit">Editar ↑</button></div>`;
 }
 
 // ---------- render ----------
@@ -206,8 +268,17 @@ function renderHeadline(v: number, pct: number) {
   const m = measure();
   const millones = fmtM(m.population / 1e6);
 
-  $("per-person-val").textContent = fmtARS(v);
+  const c = data.cpi_monthly;
+  $("per-person-val").textContent = fmtARS(nominalPerPerson());
+  // The month the income is from, and what the lookup actually uses, in the open: the survey holds
+  // pesos of its reference month, the user types pesos of now.
+  const adjusted = sameMonthAsSurvey()
+    ? `Tu ingreso es de <strong>${c.reference_label}</strong>, el mes que releva la encuesta, así que se compara tal cual. `
+    : `Tu ingreso es de <strong>${fmtMonth(state.incomeMonth)}</strong> y la encuesta releva ingresos de <strong>${c.reference_label}</strong>: ` +
+      `descontada la inflación entre ambos (${fmtPct((1 / deflator() - 1) * 100)}), son <strong>${fmtARS(v)}</strong> por persona ` +
+      `en pesos de ${c.reference_label}, y ese es el número que ubicamos. `;
   $("per-person").innerHTML =
+    adjusted +
     `Lo comparamos con el ingreso por persona de ~${millones} millones de habitantes. ` +
     `<a class="subtle-link" href="#methodology">cómo se calcula</a>`;
 
@@ -330,7 +401,7 @@ function renderContext(v: number, pct: number) {
   const smvm = data.cost_of_living?.reference_incomes?.smvm;
 
   const cell = (label: string, value: string, sub: string, title = "") =>
-    `<div class="ctx-cell" title="${title}"><span class="ctx-label">${label}</span><strong class="ctx-value">${value}</strong><span class="ctx-sub">${sub}</span></div>`;
+    `<div class="ctx-cell" title="${escAttr(title)}"><span class="ctx-label">${label}</span><strong class="ctx-value">${value}</strong><span class="ctx-sub">${sub}</span></div>`;
 
   let next: string;
   if (idx >= classes.length - 1) {
@@ -526,16 +597,21 @@ function renderSplits() {
 }
 
 function updateCohort() {
-  const inc = parseMoney($<HTMLInputElement>("cohort-income").value);
+  const typed = parseMoney($<HTMLInputElement>("cohort-income").value);
   const out = $("cohort-result");
-  if (!inc) {
+  if (!typed) {
     out.innerHTML = `Ingresá tu <strong>sueldo individual</strong> para ubicarte entre los que cobran.`;
     return;
   }
+  // Same month as the household income, same deflation: the perceptores are ranked in survey pesos.
+  const inc = typed * deflator();
+  const amount = sameMonthAsSurvey()
+    ? `<strong>${fmtARS(typed)}</strong>`
+    : `<strong>${fmtARS(typed)}</strong> (≈ ${fmtARS(inc)} de ${data.cpi_monthly.reference_label})`;
   const natPct = Math.round(percentileOfIncome(data.measures.individual, inc));
   const sel = $<HTMLSelectElement>("cohort-group").value;
   if (sel === "all") {
-    out.innerHTML = `Tu sueldo (<strong>${fmtARS(inc)}</strong>) está en el <strong>percentil ${natPct}</strong> entre todos los que cobran un ingreso.`;
+    out.innerHTML = `Tu sueldo (${amount}) está en el <strong>percentil ${natPct}</strong> entre todos los que cobran un ingreso.`;
     return;
   }
   const [dimKey, gKey] = sel.split(":");
@@ -544,7 +620,7 @@ function updateCohort() {
   if (!g) return;
   const gPct = Math.round(percentileOfIncome({ percentiles: g.percentiles } as unknown as Measure, inc));
   out.innerHTML =
-    `Tu sueldo (<strong>${fmtARS(inc)}</strong>) está en el <strong>percentil ${gPct}</strong> entre <strong>${g.label.toLowerCase()}</strong> ` +
+    `Tu sueldo (${amount}) está en el <strong>percentil ${gPct}</strong> entre <strong>${g.label.toLowerCase()}</strong> ` +
     `(${dim.label.toLowerCase()}), y en el <strong>percentil ${natPct}</strong> entre todos los que cobran.`;
 }
 
@@ -692,7 +768,7 @@ function updateTime() {
     `${quarterLabel(qsel)} —que medida en pesos del ${base} era <strong>${fmtARS(realMed)}</strong>—. ` +
     `Y si el próximo trimestre la inflación fuera <strong>${Math.round(infl * 100)}%</strong>, para no perder poder de compra lo que entra a tu hogar ` +
     `debería pasar de ${fmtARS(H)} a <strong>${fmtARS(need)}</strong>.<br>` +
-    `<span class="muted">El IPC de esta comparación llega hasta el ${base}: si tu ingreso es de un mes posterior, la inflación desde entonces no está descontada.</span>`;
+    `<span class="muted">Tu ingreso ya está llevado a pesos de ${data.cpi_monthly.reference_label} (el mes de la encuesta, dentro del ${base}), así que la comparación es en pesos equivalentes.</span>`;
 }
 
 function renderTrendsText() {
@@ -805,7 +881,7 @@ function renderCost() {
 
   const rowsHtml = lines
     .map(
-      (l) => `<tr title="${l.detail}  ·  Fuente: ${l.source}">
+      (l) => `<tr title="${escAttr(`${l.detail}  ·  Fuente: ${l.source}`)}">
         <td>${l.label}</td>
         <td class="num"><span class="cost-money"><span class="cost-cur">$</span><input class="cost-input" data-key="${l.key}" inputmode="numeric" autocomplete="off" value="${fmtNum(l.amount)}"></span></td></tr>`
     )
@@ -883,8 +959,9 @@ function renderBuyingPower() {
 
   const tiles: string[] = [];
   if (state.blue) tiles.push(tile(cnt(H / state.blue.venta), "dólares al blue", `blue $${fmtNum(state.blue.venta)}`));
+  // The canasta is priced in the survey's reference month, so the income is compared in those pesos.
   const cbtHogar = pl.cbt_adulto_equiv * state.people;
-  tiles.push(tile(cnt(H / cbtHogar), `canastas básicas (hogar de ${state.people})`, `1 canasta ${fmtShort(cbtHogar)}`));
+  tiles.push(tile(cnt((H * deflator()) / cbtHogar), `canastas básicas (hogar de ${state.people})`, `1 canasta ${fmtShort(cbtHogar)}, ${pl.period_label}`));
   if (c.reference_incomes?.smvm) tiles.push(tile(cnt(H / c.reference_incomes.smvm), "salarios mínimos", `SMVM ${fmtShort(c.reference_incomes.smvm)}`));
   // The rent the user sees (and may have edited) in the cost table, not the region default.
   const rent = effectiveCostLines().find((l) => l.key === "alquiler")?.amount ?? 0;
@@ -971,6 +1048,7 @@ function renderMethodology() {
   const ind = data.measures.individual;
   const pl = data.poverty_lines;
   const ok = (a: number, b: number, tol: number) => (Math.abs(a - b) / b <= tol ? "✓" : "✗");
+  const cpiCoverage = `IPC disponible hasta ${fmtMonth(data.cpi_monthly.months[data.cpi_monthly.months.length - 1].period)}`;
 
   $("methodology-body").innerHTML = `
     <p>Casi todos los “calculadores de sueldo” inventan los números o los estiman a ojo. Acá se descargan
@@ -1016,8 +1094,11 @@ function renderMethodology() {
 
     <h3>Qué tener en cuenta</h3>
     <ul>
-      <li>Los ingresos son <strong>nominales</strong> del mes relevado. La única serie ajustada por inflación es
-      la “mediana en pesos de hoy”, deflactada con el IPC nivel general del INDEC (base ${data.history.cpi_base_label}).</li>
+      <li>Los ingresos de la encuesta son <strong>nominales</strong> de ${pl.period_label}. El ingreso que escribís se lleva a
+      pesos de ese mes con el IPC nivel general del INDEC, según el mes que elijas arriba
+      (${cpiCoverage}; si tu ingreso es posterior, la inflación desde entonces no está descontada). Los gastos de
+      “¿Llegás a fin de mes?” son precios actuales y se comparan con tu ingreso tal cual. La “mediana en pesos de hoy”
+      usa la misma fuente (base ${data.history.cpi_base_label}).</li>
       <li>Se usa el último <strong>2º o 4º trimestre</strong> publicado (ahora, ${data.source.period_label}) porque esos no están inflados por el aguinaldo, a diferencia del 1º y el 3º.</li>
       <li>Son ingresos <strong>declarados</strong> en una encuesta: los más altos suelen subdeclararse.</li>
       <li>Tu percentil es una <strong>estimación</strong> sobre la grilla de percentiles, no un padrón exacto.</li>

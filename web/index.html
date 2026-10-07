@@ -10,7 +10,11 @@
       name="description"
       content="Tu posición en la distribución del ingreso en Argentina, calculada con microdatos reales de la EPH (INDEC): percentil, decil, regiones, curva de Lorenz, Gini, evolución y línea de pobreza."
     />
-    <!-- Social preview. Set og:url and add an og:image (1200×630 PNG in public/) once deployed. -->
+    <!-- Cloudflare serves this project only on its *.pages.dev host; the canonical and og:url name it
+         explicitly so a preview deployment (<hash>.argentina-income-analyzer.pages.dev) never gets
+         indexed as the real page. -->
+    <link rel="canonical" href="https://argentina-income-analyzer.pages.dev/" />
+    <meta property="og:url" content="https://argentina-income-analyzer.pages.dev/" />
     <meta property="og:type" content="website" />
     <meta property="og:locale" content="es_AR" />
     <meta property="og:title" content="¿Dónde estás en la distribución del ingreso en Argentina?" />
@@ -18,7 +22,12 @@
       property="og:description"
       content="Tu percentil, decil y línea de pobreza, calculados con microdatos reales de la EPH (INDEC)."
     />
-    <meta name="twitter:card" content="summary" />
+    <meta property="og:image" content="https://argentina-income-analyzer.pages.dev/og.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="¿Dónde estás en la distribución del ingreso en Argentina? Percentil, decil y línea de pobreza con microdatos de la EPH (INDEC)." />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:image" content="https://argentina-income-analyzer.pages.dev/og.png" />
     <meta name="twitter:title" content="¿Dónde estás en la distribución del ingreso en Argentina?" />
     <meta
       name="twitter:description"
@@ -44,9 +53,9 @@
       <section class="controls" id="controls" aria-label="Datos de tu hogar">
         <div class="control-row">
           <span class="controls-title">Tu hogar</span>
-          <div class="seg seg-sm" id="currency-toggle" aria-label="Moneda">
-            <button type="button" class="seg-btn is-active" data-cur="ARS">ARS</button>
-            <button type="button" class="seg-btn" data-cur="USD">USD <span class="muted">blue</span></button>
+          <div class="seg seg-sm" id="currency-toggle" role="group" aria-label="Moneda">
+            <button type="button" class="seg-btn is-active" data-cur="ARS" aria-pressed="true">ARS</button>
+            <button type="button" class="seg-btn" data-cur="USD" aria-pressed="false">USD <span class="muted">blue</span></button>
           </div>
         </div>
         <div class="hh-line">
@@ -56,6 +65,10 @@
               <span class="prefix" id="cur-prefix">$</span>
               <input id="income-number" type="text" inputmode="numeric" autocomplete="off" value="1.500.000" />
             </div>
+          </label>
+          <label class="hh-field hh-field-month">
+            <span>del mes de</span>
+            <select id="income-month" aria-label="Mes de tu ingreso"></select>
           </label>
           <span class="hh-op" aria-hidden="true">÷</span>
           <label class="hh-field hh-field-people">
@@ -202,9 +215,9 @@
       <section class="block">
         <div class="control-row">
           <h2 class="block-title">Cuánto cambia según dónde vivas</h2>
-          <div class="seg seg-sm" id="geo-toggle" aria-label="Nivel geográfico">
-            <button type="button" class="seg-btn is-active" data-geo="region">6 regiones</button>
-            <button type="button" class="seg-btn" data-geo="aglo">32 ciudades</button>
+          <div class="seg seg-sm" id="geo-toggle" role="group" aria-label="Nivel geográfico">
+            <button type="button" class="seg-btn is-active" data-geo="region" aria-pressed="true">6 regiones</button>
+            <button type="button" class="seg-btn" data-geo="aglo" aria-pressed="false">32 ciudades</button>
           </div>
         </div>
         <p class="explain" id="regions-explain"></p>

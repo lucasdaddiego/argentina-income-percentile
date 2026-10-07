@@ -122,6 +122,7 @@ def test_build_end_to_end(eph_raw, tmp_path, monkeypatch):
         "poverty_lines",
         "indec_reference_ipcf",
         "history",
+        "cpi_monthly",
         "cost_of_living",
         "citation",
     }

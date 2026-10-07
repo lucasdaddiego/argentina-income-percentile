@@ -29,3 +29,14 @@ export function parseMoney(s: string): number {
   const digits = s.replace(/[^\d]/g, "");
   return digits ? parseInt(digits, 10) : 0;
 }
+
+export const MESES = [
+  "enero", "febrero", "marzo", "abril", "mayo", "junio",
+  "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre",
+];
+
+/** "2026-05" → "mayo 2026". */
+export function fmtMonth(m: string): string {
+  const [y, mm] = m.split("-");
+  return `${MESES[parseInt(mm, 10) - 1]} ${y}`;
+}

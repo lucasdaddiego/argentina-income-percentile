@@ -3,6 +3,8 @@ these assertions document the contract the rest of the pipeline relies on."""
 
 from __future__ import annotations
 
+from itertools import pairwise
+
 from pipeline import config
 
 
@@ -46,3 +48,18 @@ def test_splits_reference_codes_are_ints():
     assert config.SPLIT_MIN_N > 0
     assert config.ZIP_NAME in config.ZIP_URL
     assert len(config.ARTIFACT_PATHS) == 2
+
+
+def test_cpi_monthly_is_contiguous_from_the_survey_reference_month():
+    c = config.CPI_MONTHLY
+    assert c["reference_month"] == config.POVERTY_LINES["period"]
+    months = [m["period"] for m in c["months"]]
+    assert months[0] == c["reference_month"]
+    # consecutive months, no gap: the web app deflates by the ratio between two of them
+    for a, b in pairwise(months):
+        y, mo = int(a[:4]), int(a[5:7])
+        nxt = f"{y + 1}-01" if mo == 12 else f"{y}-{mo + 1:02d}"
+        assert b == nxt, (a, b)
+    idx = [m["index"] for m in c["months"]]
+    assert all(x > 0 for x in idx) and idx == sorted(idx)  # Argentine CPI never fell month on month here
+    assert "peso" in c["source"] and "INDEC" in c["source"]

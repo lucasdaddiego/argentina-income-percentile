@@ -101,8 +101,17 @@ export interface Artifact {
   poverty_lines: PovertyLines;
   indec_reference_ipcf: IndecReference;
   history: History;
+  cpi_monthly: CpiMonthly;
   cost_of_living: CostOfLiving;
   citation: string;
+}
+
+/** Monthly CPI (ratio use only) to bring a typed income back to the survey's reference month. */
+export interface CpiMonthly {
+  reference_month: string; // the month the survey's incomes refer to (= poverty_lines.period)
+  reference_label: string;
+  source: string;
+  months: { period: string; index: number }[]; // contiguous, from reference_month onward
 }
 
 export interface CostLine {

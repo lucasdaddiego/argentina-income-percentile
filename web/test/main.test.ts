@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import indexHtml from "../index.html?raw";
+import artifactUrl from "../public/percentiles.v1.json?url";
+import { fmtARS } from "../src/format";
 import { ARTIFACT } from "./fixture";
 
 const BLUE = { venta: 1450, fechaActualizacion: "2026-06-26" };
@@ -36,7 +38,25 @@ async function boot(opts: BootOpts = {}) {
   await vi.waitFor(() => {
     if (!document.getElementById("result")?.innerHTML) throw new Error("init not done");
   });
+  await waitForBlue();
   return M;
+}
+
+/** The live blue lands after the first paint; wait until the USD toggle has settled either way. */
+async function waitForBlue() {
+  await vi.waitFor(() => {
+    const b = document.querySelector('[data-cur="USD"]') as HTMLButtonElement | null;
+    if (b && b.disabled && b.title.startsWith("Buscando")) throw new Error("blue pending");
+  });
+}
+
+const REF_MONTH = ARTIFACT.cpi_monthly.reference_month;
+const LAST_MONTH = ARTIFACT.cpi_monthly.months[ARTIFACT.cpi_monthly.months.length - 1].period;
+/** Date the typed income: the survey's own month means no deflation applies. */
+function setMonth(period: string) {
+  const sel = $i("income-month");
+  sel.value = period;
+  sel.dispatchEvent(new Event("change"));
 }
 
 const $ = (id: string) => document.getElementById(id) as HTMLElement;
@@ -81,6 +101,58 @@ describe("init smoke", () => {
     const usd = document.querySelector('[data-cur="USD"]') as HTMLButtonElement;
     expect(usd.disabled).toBe(true);
     // headline shows no USD equivalence line
+    expect($("result").innerHTML).not.toContain("dólar blue");
+  });
+
+  it("shows an error and bails when the artifact fails to load", async () => {
+    // The Pages SPA fallback answers an unknown path with index.html: r.json() throws and the page
+    // used to sit on "cargando datos…" forever.
+    document.body.innerHTML = bodyHtml;
+    window.history.replaceState(null, "", "/");
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) => {
+        if (String(url).includes("dolarapi")) return { ok: true, json: async () => BLUE };
+        return { ok: false, status: 404, json: async () => ({}) };
+      }),
+    );
+    vi.resetModules();
+    await import("../src/main");
+    await vi.waitFor(() => {
+      if (!$("source-badge").textContent?.includes("No se pudieron cargar")) throw new Error("not loaded");
+    });
+    expect($("result").innerHTML).toBe(""); // bailed before any render
+  });
+
+  it("loads the artifact from the bundler's asset URL, not the fixed public name", async () => {
+    // The fixed /percentiles.v1.json name stays the same across data refreshes, so a cached copy goes
+    // stale. The ?url import makes Vite emit a content-hashed copy under /assets/ and hand back its URL.
+    await boot();
+    const urls = vi.mocked(fetch).mock.calls.map(([u]) => String(u));
+    expect(urls).toContain(artifactUrl);
+    expect(urls).not.toContain("/percentiles.v1.json");
+  });
+
+  it("renders the whole page before the live blue arrives, even if it never does", async () => {
+    document.body.innerHTML = bodyHtml;
+    window.history.replaceState(null, "", "/");
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) => {
+        if (String(url).includes("dolarapi")) return new Promise(() => {}); // connected, never answers
+        return { ok: true, json: async () => ARTIFACT };
+      }),
+    );
+    vi.resetModules();
+    await import("../src/main");
+    await vi.waitFor(() => {
+      if (!$("result").innerHTML) throw new Error("init not done");
+    });
+    expect($("result").innerHTML).toContain("percentil");
+    expect($("chart-cdf").innerHTML).toContain("svg");
+    const usd = document.querySelector('[data-cur="USD"]') as HTMLButtonElement;
+    expect(usd.disabled).toBe(true); // only the USD toggle waits
+    expect(usd.title).toContain("Buscando");
     expect($("result").innerHTML).not.toContain("dólar blue");
   });
 
@@ -135,9 +207,11 @@ describe("household controls", () => {
   });
 });
 
-// Income bands (people=1 so ipcf === income), covering every status/class/headline branch.
+// Income bands (people=1 and the income dated the survey month, so ipcf === income), covering
+// every status/class/headline branch.
 async function bootSolo(income: number, opts: BootOpts = {}) {
   const M = await boot(opts);
+  setMonth(REF_MONTH);
   setVal("hh-size", "1");
   setVal("income-number", String(income));
   return M;
@@ -212,6 +286,7 @@ describe("income bands", () => {
     // Default household: $1.500.000 / 3 = $500.000 per person, above the median ($450.000) but
     // below the mean ($635.996). The copy used to say "por encima de los dos" here.
     await boot();
+    setMonth(REF_MONTH);
     expect($("headline-explain").innerHTML).toContain("entre la mediana y el promedio");
     expect($("headline-explain").innerHTML).not.toContain("los dos");
     setVal("hh-size", "1");
@@ -233,6 +308,82 @@ describe("income bands", () => {
   it("cima copy when below the top 10%", async () => {
     await bootSolo(200000);
     expect($("cima-section").hidden).toBe(true);
+  });
+});
+
+describe("mes de tu ingreso (deflation to the survey month)", () => {
+  it("defaults to the newest CPI month and brings the typed income back to survey pesos", async () => {
+    await boot();
+    expect($i("income-month").value).toBe(LAST_MONTH);
+    setVal("hh-size", "1");
+    setVal("income-number", "600000");
+    const c = ARTIFACT.cpi_monthly;
+    const factor = c.months[0].index / c.months[c.months.length - 1].index;
+    const v = 600000 * factor; // ≈ $496.435 of October 2025 for $600.000 of May 2026
+    expect(factor).toBeLessThan(0.9);
+    expect($("per-person-val").textContent).toBe("$600.000"); // the arithmetic the user typed
+    expect($("per-person").innerHTML).toContain(`son <strong>${fmtARS(v)}</strong> por persona en pesos de ${c.reference_label}`);
+    expect($("per-person").innerHTML).toContain("descontada la inflación entre ambos (20,9%)");
+    expect($("sticky-bar").innerHTML).toContain(`<strong>${fmtARS(v)}</strong> por persona (pesos de ${c.reference_label})`);
+    expect($("poverty-line").innerHTML).toContain(`<strong>${fmtARS(v)}</strong>`); // the lookups use the deflated value
+    const deflated = Number($("result").innerHTML.match(/percentil (\d+)/)![1]);
+    // The same pesos dated the survey month rank higher: nothing to deflate.
+    setMonth(REF_MONTH);
+    expect($("per-person").innerHTML).toContain("se compara tal cual");
+    expect($("sticky-bar").innerHTML).not.toContain("pesos de");
+    expect($("poverty-line").innerHTML).toContain("<strong>$600.000</strong>");
+    const nominal = Number($("result").innerHTML.match(/percentil (\d+)/)![1]);
+    expect(nominal).toBeGreaterThan(deflated);
+  });
+
+  it("lists every CPI month, in order, with its Spanish label", async () => {
+    await boot();
+    const opts = [...$i("income-month").querySelectorAll("option")];
+    expect(opts.map((o) => o.value)).toEqual(ARTIFACT.cpi_monthly.months.map((m) => m.period));
+    expect(opts[0].textContent).toBe("octubre 2025");
+    expect(opts[opts.length - 1].textContent).toBe("mayo 2026");
+  });
+
+  it("deflates the cohort income the same way and says so", async () => {
+    await boot();
+    const c = ARTIFACT.cpi_monthly;
+    const factor = c.months[0].index / c.months[c.months.length - 1].index;
+    $i("cohort-group").value = "all";
+    setVal("cohort-income", "900000");
+    expect($("cohort-result").innerHTML).toContain(`<strong>$900.000</strong> (≈ ${fmtARS(900000 * factor)} de ${c.reference_label})`);
+    setMonth(REF_MONTH); // re-ranks the cohort too
+    expect($("cohort-result").innerHTML).toContain("<strong>$900.000</strong>) está");
+    expect($("cohort-result").innerHTML).not.toContain("≈");
+  });
+
+  it("compares the canasta tile in survey pesos and the time machine in equivalent pesos", async () => {
+    await boot();
+    expect($("buying-grid").innerHTML).toContain(`, ${ARTIFACT.poverty_lines.period_label}`);
+    expect($("time-result").innerHTML).toContain(`pesos de ${ARTIFACT.cpi_monthly.reference_label}`);
+    expect($("methodology-body").innerHTML).toContain("IPC disponible hasta mayo 2026");
+  });
+});
+
+describe("accessibility", () => {
+  it("exposes the toggles as groups with aria-pressed, and the sticky edit control as a button", async () => {
+    await boot();
+    expect($("currency-toggle").getAttribute("role")).toBe("group");
+    expect($("geo-toggle").getAttribute("role")).toBe("group");
+    const ars = document.querySelector('[data-cur="ARS"]') as HTMLButtonElement;
+    const usd = document.querySelector('[data-cur="USD"]') as HTMLButtonElement;
+    expect(ars.getAttribute("aria-pressed")).toBe("true");
+    expect(usd.getAttribute("aria-pressed")).toBe("false");
+    usd.click();
+    expect(usd.getAttribute("aria-pressed")).toBe("true");
+    expect(ars.getAttribute("aria-pressed")).toBe("false");
+    const aglo = document.querySelector('[data-geo="aglo"]') as HTMLButtonElement;
+    const region = document.querySelector('[data-geo="region"]') as HTMLButtonElement;
+    aglo.click();
+    expect(aglo.getAttribute("aria-pressed")).toBe("true");
+    expect(region.getAttribute("aria-pressed")).toBe("false");
+    const scroll = vi.spyOn(Element.prototype, "scrollIntoView");
+    ($("sticky-bar").querySelector("button.sticky-edit") as HTMLButtonElement).click(); // keyboard-reachable
+    expect(scroll).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -508,6 +659,17 @@ describe("artifact variants", () => {
     });
     await boot({ artifact: a });
     expect($("context-strip").innerHTML).not.toContain("salario mínimo");
+  });
+
+  it("escapes artifact strings that land in title attributes", async () => {
+    const a = craft((a) => {
+      a.cost_of_living.lines[0].detail = 'Depto "estándar" <2 amb> & más';
+      a.cost_of_living.lines[0].source = 'Fuente "X"';
+    });
+    await boot({ artifact: a });
+    const tr = document.querySelector("table.cost-table tbody tr") as HTMLTableRowElement;
+    expect(tr.title).toBe('Depto "estándar" <2 amb> & más  ·  Fuente: Fuente "X"'); // the whole string, not up to the first quote
+    expect(tr.querySelectorAll("td")).toHaveLength(2); // and the row is intact
   });
 
   it("renders a methodology mismatch mark when our figures diverge from INDEC", async () => {

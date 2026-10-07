@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { fmtARS, fmtNum, fmtPct, fmtShort, fmtUSD, parseMoney } from "../src/format";
+import { fmtARS, fmtMonth, fmtNum, fmtPct, fmtShort, fmtUSD, MESES, parseMoney } from "../src/format";
 
 describe("fmtARS", () => {
   it("prefixes $ and groups thousands with es-AR dots", () => {
@@ -63,5 +63,13 @@ describe("parseMoney", () => {
   it("returns 0 when there are no digits", () => {
     expect(parseMoney("")).toBe(0);
     expect(parseMoney("abc")).toBe(0);
+  });
+});
+
+describe("fmtMonth", () => {
+  it("spells the month in Spanish, lowercase, with the year", () => {
+    expect(fmtMonth("2026-05")).toBe("mayo 2026");
+    expect(fmtMonth("2025-10")).toBe("octubre 2025");
+    expect(MESES).toHaveLength(12);
   });
 });
