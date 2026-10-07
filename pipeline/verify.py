@@ -45,6 +45,17 @@ def verify() -> str:
         )
         print(f"[verify] pinned {config.ZIP_NAME} = {digest} (first use)")
     elif expected != digest:
+        with open(zip_path, "rb") as f:
+            head = f.read(len(config.ZIP_MAGIC))
+        if head != config.ZIP_MAGIC:
+            # INDEC answers 200 with an HTML page for a moved file. Re-pinning would pin that page
+            # and zipfile would then die with an opaque BadZipFile.
+            raise ValueError(
+                f"[verify] CHECKSUM MISMATCH for {config.ZIP_NAME}: the file is NOT a zip (starts with {head!r}).\n"
+                f"  pinned:   {expected}\n  computed: {digest}\n"
+                f"Do not re-pin. Delete data/raw/{config.ZIP_NAME}, check ZIP_URL in pipeline/config.py "
+                "and run `make data` again."
+            )
         raise ValueError(
             f"[verify] CHECKSUM MISMATCH for {config.ZIP_NAME}\n"
             f"  pinned:   {expected}\n  computed: {digest}\n"

@@ -97,3 +97,16 @@ def test_validate_fails_exits_1(tmp_path, monkeypatch, loaded_df, capsys):
 def test_validate_main(tmp_path, monkeypatch, loaded_df):
     _setup(tmp_path, monkeypatch, loaded_df, ref=_ref())
     runpy.run_module("pipeline.validate", run_name="__main__")  # PASS path, no exit
+
+
+def test_validate_fails_on_a_moved_decile_cutoff(tmp_path, monkeypatch, loaded_df, capsys):
+    # Share ±0.5 pp and mean ±5% absorb a cutoff that moved by thousands; the published "hasta"
+    # must reproduce to the peso (the page claims exactly that).
+    ref = _ref()
+    ref["deciles"][2]["hasta"] = 300000 + 5000  # D3: artifact says 300.000, INDEC 305.000
+    _setup(tmp_path, monkeypatch, loaded_df, ref=ref)
+    with pytest.raises(SystemExit) as exc:
+        validate.validate()
+    assert exc.value.code == 1
+    out = capsys.readouterr().out
+    assert "D3 hasta" in out and "FAIL" in out

@@ -14,7 +14,7 @@ from pipeline import config, verify
 pytestmark = pytest.mark.filterwarnings("ignore:.*found in sys.modules:RuntimeWarning")
 
 
-def _write_zip(raw, content=b"fake-zip-bytes"):
+def _write_zip(raw, content=b"PK\x03\x04fake-zip-bytes"):
     raw.mkdir(exist_ok=True)
     (raw / config.ZIP_NAME).write_bytes(content)
 
@@ -68,8 +68,25 @@ def test_verify_mismatch_raises(tmp_path, monkeypatch):
     checks.write_text(f"{'0' * 64}  {config.ZIP_NAME}\n")
     monkeypatch.setattr(config, "RAW_DIR", raw)
     monkeypatch.setattr(config, "CHECKSUMS_FILE", checks)
-    with pytest.raises(ValueError, match="CHECKSUM MISMATCH"):
+    with pytest.raises(ValueError, match="CHECKSUM MISMATCH") as exc:
         verify.verify()
+    assert "re-pin intentionally" in str(exc.value)
+    assert "NOT a zip" not in str(exc.value)
+
+
+def test_verify_mismatch_on_a_non_zip_says_so(tmp_path, monkeypatch):
+    # A saved HTML page (INDEC's 200 "not found") must not be mistaken for a changed source: the
+    # usual advice, re-pinning, would pin the page.
+    raw = tmp_path / "raw"
+    _write_zip(raw, content=b"<!DOCTYPE html><html>No encontrado</html>")
+    checks = tmp_path / "checksums.txt"
+    checks.write_text(f"{'0' * 64}  {config.ZIP_NAME}\n")
+    monkeypatch.setattr(config, "RAW_DIR", raw)
+    monkeypatch.setattr(config, "CHECKSUMS_FILE", checks)
+    with pytest.raises(ValueError, match="NOT a zip") as exc:
+        verify.verify()
+    assert "Do not re-pin" in str(exc.value)
+    assert "check ZIP_URL" in str(exc.value)
 
 
 def test_verify_missing_zip_raises(tmp_path, monkeypatch):

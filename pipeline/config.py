@@ -33,6 +33,8 @@ ZIP_NAME = "EPH_usu_4_Trim_2025_txt.zip"
 INDIVIDUAL_FILE = "usu_individual_T425.txt"
 HOGAR_FILE = "usu_hogar_T425.txt"
 
+ZIP_MAGIC = b"PK\x03\x04"  # a local-file header opens every real zip; INDEC's "not found" page is HTML
+
 # File format (verified by unzip + byte scan).
 CSV_SEP = ";"
 CSV_ENCODING = "latin-1"  # Q4 2025 is pure ASCII; latin-1 is safe across quarters.

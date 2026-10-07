@@ -15,11 +15,15 @@ from pipeline import config, fetch
 pytestmark = pytest.mark.filterwarnings("ignore:.*found in sys.modules:RuntimeWarning")
 
 
+ZIP = b"PK\x03\x04" + b"rest-of-a-zip"
+
+
 class _FakeResp:
     """Minimal stand-in for the urlopen context manager."""
 
-    def __init__(self, data: bytes):
+    def __init__(self, data: bytes, ctype: str = "application/zip"):
         self._data = data
+        self.headers = {"Content-Type": ctype}
 
     def __enter__(self):
         return self
@@ -49,11 +53,23 @@ def _boom(*a, **k):
 def test_fetch_downloads(tmp_path, monkeypatch, capsys):
     raw = tmp_path / "raw"  # does not exist yet -> mkdir(parents=True) path
     monkeypatch.setattr(config, "RAW_DIR", raw)
-    monkeypatch.setattr(urllib.request, "urlopen", lambda req, timeout=0: _FakeResp(b"ZIPDATA"))
+    monkeypatch.setattr(urllib.request, "urlopen", lambda req, timeout=0: _FakeResp(ZIP))
     fetch.fetch()
     dest = raw / config.ZIP_NAME
-    assert dest.read_bytes() == b"ZIPDATA"
+    assert dest.read_bytes() == ZIP
     assert "saved" in capsys.readouterr().out
+
+
+def test_fetch_rejects_a_non_zip_body(tmp_path, monkeypatch):
+    # INDEC answers HTTP 200 with an HTML "not found" page for a moved file. Saving it would make
+    # verify.py report a bare checksum mismatch whose advice (re-pin) pins the HTML page.
+    raw = tmp_path / "raw"
+    monkeypatch.setattr(config, "RAW_DIR", raw)
+    html = b"<!DOCTYPE html><html><body>No encontrado</body></html>"
+    monkeypatch.setattr(urllib.request, "urlopen", lambda req, timeout=0: _FakeResp(html, "text/html; charset=utf-8"))
+    with pytest.raises(ValueError, match=r"did not return a zip.*text/html.*check ZIP_URL"):
+        fetch.fetch()
+    assert not (raw / config.ZIP_NAME).exists()  # nothing written
 
 
 def test_fetch_redownloads_empty_file(tmp_path, monkeypatch):
@@ -62,9 +78,9 @@ def test_fetch_redownloads_empty_file(tmp_path, monkeypatch):
     raw.mkdir()
     (raw / config.ZIP_NAME).write_bytes(b"")
     monkeypatch.setattr(config, "RAW_DIR", raw)
-    monkeypatch.setattr(urllib.request, "urlopen", lambda req, timeout=0: _FakeResp(b"REAL"))
+    monkeypatch.setattr(urllib.request, "urlopen", lambda req, timeout=0: _FakeResp(ZIP))
     fetch.fetch()
-    assert (raw / config.ZIP_NAME).read_bytes() == b"REAL"
+    assert (raw / config.ZIP_NAME).read_bytes() == ZIP
 
 
 def test_main_success(tmp_path, monkeypatch):

@@ -1,8 +1,10 @@
 """Validation gate: assert the pipeline reproduces INDEC's published figures.
 
 HARD checks (build fails if any miss) compare our IPCF output to INDEC "Evolución de la
-distribución del ingreso (EPH), 4º trim. 2025". A soft cross-check compares our individual-income
-(P47T) deciles against INDEC's own shipped decile labels (DECINDR) in the microdata.
+distribución del ingreso (EPH), 4º trim. 2025": Gini, mean, median, population, every closed
+decile's upper limit to the peso, and each decile's income share and mean. A soft cross-check
+compares our individual-income (P47T) deciles against INDEC's own shipped decile labels (DECINDR)
+in the microdata.
 """
 
 from __future__ import annotations
@@ -50,6 +52,10 @@ def validate() -> None:
     for rd in ref["deciles"]:
         d = rd["decile"]
         got = by_d[d]
+        # The published upper limit ("hasta") of every closed decile, to the peso: share ±0.5 pp
+        # and mean ±5% absorb a weighting regression that moves a cutoff by thousands.
+        if rd["hasta"] is not None:
+            g.check(f"D{d} hasta", got["hasta"], rd["hasta"], 1.0)
         share_ok = abs(got["share"] - rd["share"]) <= 0.5
         mean_ok = abs(got["mean"] - rd["mean"]) / rd["mean"] <= 0.05
         st = f"{GREEN}ok{RESET}" if share_ok else f"{RED}XX{RESET}"
