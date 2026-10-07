@@ -1,39 +1,51 @@
 {
   "schema_version": 1,
-  "peso_vintage": "2026-05",
-  "peso_vintage_label": "mayo 2026",
-  "source": "INDEC IPC Nacional (serie 148.3_INIVELNAL_DICI_M_26 vía datos.gob.ar), empalme de lucasdaddiego/peso series.v1.json, vintage 2026-05",
+  "peso_vintage": "2026-08",
+  "peso_vintage_label": "agosto 2026",
+  "source": "INDEC IPC Nacional (serie 148.3_INIVELNAL_DICI_M_26 vía datos.gob.ar), empalme de lucasdaddiego/peso series.v1.json, vintage 2026-08",
   "months": [
     {
       "period": "2025-10",
-      "index": 82.739179
+      "index": 78.227949
     },
     {
       "period": "2025-11",
-      "index": 84.785253
+      "index": 80.162464
     },
     {
       "period": "2025-12",
-      "index": 87.197624
+      "index": 82.443304
     },
     {
       "period": "2026-01",
-      "index": 89.710327
+      "index": 84.819006
     },
     {
       "period": "2026-02",
-      "index": 92.308625
+      "index": 87.275635
     },
     {
       "period": "2026-03",
-      "index": 95.431077
+      "index": 90.22784
     },
     {
       "period": "2026-04",
-      "index": 97.895279
+      "index": 92.557685
     },
     {
       "period": "2026-05",
+      "index": 94.54765
+    },
+    {
+      "period": "2026-06",
+      "index": 96.331642
+    },
+    {
+      "period": "2026-07",
+      "index": 98.367874
+    },
+    {
+      "period": "2026-08",
       "index": 100.0
     }
   ]
