@@ -44,3 +44,4 @@ eph-bump-pr-body.md
 
 # NOTE: data/percentiles.v1.json and web/public/percentiles.v1.json ARE committed on
 # purpose — the precomputed, provenance-stamped artifact is the deliverable.
+cpi-sync-body.md

@@ -1,0 +1,112 @@
+name: CPI sync (peso)
+
+# Monthly maintenance of the CPI block the web app deflates incomes with.
+#  - Fetch peso's deployed series.v1.json (its own watch bumps the vintage on the 20th), render
+#    data/cpi_monthly.json from the survey's reference month to peso's vintage, and compare it with
+#    the committed file. Changed -> write it, `make data` (embeds it in the percentiles artifact),
+#    both test suites, then push to master with the `cpi-sync` deploy key (a bypass actor of the
+#    `protect-master` ruleset): that push runs the usual checks and deploys the site like any other
+#    commit.
+#  - Artifact unreachable, or its shape no longer fits -> open a tracking issue.
+# The 21st: the day after peso's watch.
+
+on:
+  schedule:
+    - cron: "0 9 21 * *" # 09:00 UTC on the 21st of every month
+  workflow_dispatch:
+
+# The job token only opens issues. The push goes through the deploy key, so it triggers the normal
+# workflows (a job-token push would not).
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: cpi-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      # `ssh-key` switches the remote to SSH with the `cpi-sync` deploy key and keeps it for the
+      # push step below (persist-credentials stays on for this job on purpose).
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ssh-key: ${{ secrets.CPI_SYNC_DEPLOY_KEY }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+
+      - name: Sync Python deps
+        run: uv sync
+
+      - name: Compare with peso's published artifact
+        id: sync
+        env:
+          ISSUE_BODY_FILE: cpi-sync-body.md
+        run: uv run python -m pipeline.cpi_sync
+
+      - name: Cache the pinned INDEC source (keyed on the checksum pin)
+        if: steps.sync.outputs.status == 'changed'
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: data/raw
+          key: eph-raw-${{ hashFiles('data/checksums.txt') }}
+
+      - name: Set up Node (web tests)
+        if: steps.sync.outputs.status == 'changed'
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install web deps
+        if: steps.sync.outputs.status == 'changed'
+        run: npm ci
+        working-directory: web
+
+      - name: Apply, rebuild the artifact and run both test suites
+        if: steps.sync.outputs.status == 'changed'
+        run: |
+          set -euo pipefail
+          uv run python -m pipeline.cpi_sync --apply
+          make data
+          make test
+
+      - name: Push to master
+        if: steps.sync.outputs.status == 'changed'
+        env:
+          VINTAGE: ${{ steps.sync.outputs.peso_vintage }}
+          LABEL: ${{ steps.sync.outputs.peso_vintage_label }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/cpi_monthly.json data/percentiles.v1.json web/public/percentiles.v1.json
+          git commit -m "data: CPI months through ${LABEL} (peso vintage ${VINTAGE})" \
+            -m "Applied by the CPI sync: ${RUN_URL}"
+          git push origin HEAD:master
+          echo "CPI months through ${VINTAGE} pushed to master; that push runs the checks and deploys."
+
+      - name: Open tracking issue (artifact unreachable / shape changed)
+        if: steps.sync.outputs.needs_issue == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TITLE: ${{ steps.sync.outputs.issue_title }}
+          BODY_FILE: ${{ steps.sync.outputs.issue_body_file }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          printf '\n[automated sync · run: %s]\n' "$RUN_URL" >> "$BODY_FILE"
+          gh label create data-update --color FBCA04 \
+            --description "Automated EPH data maintenance" 2>/dev/null || true
+          EXISTING=$(gh issue list --state open --label data-update --limit 100 \
+            --json number,title --jq '.[] | select(.title==env.TITLE) | .number' | head -n1 || true)
+          if [ -n "${EXISTING:-}" ]; then
+            echo "Tracking issue already open (#$EXISTING) — skipping."
+          else
+            gh issue create --title "$TITLE" --label data-update --body-file "$BODY_FILE"
+          fi

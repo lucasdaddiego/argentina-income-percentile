@@ -7,8 +7,9 @@ official figures the pipeline must reproduce.
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
-from typing import NotRequired, TypedDict
+from typing import Any, NotRequired, TypedDict
 
 # --------------------------------------------------------------------------------------
 # Paths
@@ -211,25 +212,27 @@ POVERTY_LINES = {
 # trimestre), so an income typed months later is brought back to that month with the IPC before
 # the percentile lookup. Without it a May-2026 household at the then-median read "percentil 58".
 # Index: INDEC IPC Nacional nivel general (datos.gob.ar serie 148.3_INIVELNAL_DICI_M_26) as
-# spliced and rebased by lucasdaddiego/peso (data/series.v1.json, vintage 2026-05 = 100). Only
-# the ratio between months is used, so the base does not matter. Hand-copied from that artifact:
-# on each refresh append the months peso has published since (its monthly watch bumps them).
+# spliced and rebased by lucasdaddiego/peso (series.v1.json, its vintage month = 100). Only the
+# ratio between months is used, so the base does not matter. The months live in
+# data/cpi_monthly.json, generated from peso's published artifact by pipeline/cpi_sync.py; the
+# monthly `cpi-sync.yml` workflow rewrites the file whole when peso bumps its vintage (every value
+# is rebased then). Never edit it by hand.
 # --------------------------------------------------------------------------------------
-CPI_MONTHLY = {
-    "reference_month": POVERTY_LINES["period"],
-    "reference_label": POVERTY_LINES["period_label"],
-    "source": "INDEC IPC Nacional (serie 148.3_INIVELNAL_DICI_M_26 vía datos.gob.ar), empalme de lucasdaddiego/peso series.v1.json, vintage 2026-05",
-    "months": [
-        {"period": "2025-10", "index": 82.739179},
-        {"period": "2025-11", "index": 84.785253},
-        {"period": "2025-12", "index": 87.197624},
-        {"period": "2026-01", "index": 89.710327},
-        {"period": "2026-02", "index": 92.308625},
-        {"period": "2026-03", "index": 95.431077},
-        {"period": "2026-04", "index": 97.895279},
-        {"period": "2026-05", "index": 100.0},
-    ],
-}
+CPI_MONTHLY_FILE = DATA_DIR / "cpi_monthly.json"
+
+
+def _load_cpi_monthly() -> dict[str, Any]:
+    """The block the artifact embeds: the generated months plus the survey's reference month."""
+    doc = json.loads(CPI_MONTHLY_FILE.read_text(encoding="utf-8"))
+    return {
+        "reference_month": POVERTY_LINES["period"],
+        "reference_label": POVERTY_LINES["period_label"],
+        "source": doc["source"],
+        "months": doc["months"],
+    }
+
+
+CPI_MONTHLY = _load_cpi_monthly()
 
 
 # --------------------------------------------------------------------------------------

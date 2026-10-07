@@ -43,8 +43,8 @@ It has two parts:
   Gini, mean, median, population, every decile's share and mean, and every decile cutoff to the peso.
 - **Your income, in survey pesos.** The survey holds nominal pesos of its reference month (October
   2025 for the 4º trimestre). The app asks which month your income is from and brings it back to
-  that month with INDEC's monthly IPC (`CPI_MONTHLY` in `config.py`, copied from the spliced series
-  of [peso](https://github.com/lucasdaddiego/peso)) before the lookup, and says so next to the result.
+  that month with INDEC's monthly IPC (`data/cpi_monthly.json`, generated monthly from the spliced
+  series of [peso](https://github.com/lucasdaddiego/peso)) before the lookup, and says so next to the result.
 
 ## Quickstart
 
@@ -92,7 +92,7 @@ artifact. Everything quantitative is computed once, offline, and validated.
 ## Project structure
 
 ```
-pipeline/   config (pinned facts) · fetch · verify · load · weighted · build · validate · artifact_check · watch
+pipeline/   config (pinned facts) · fetch · verify · load · weighted · build · validate · artifact_check · watch · cpi_sync
 tests/      pytest suite for pipeline/ — offline, synthetic fixture, 100% statement+branch coverage
 data/       checksums.txt · percentiles.v1.json   (raw/ is gitignored)
 web/        index.html · src/{main,charts,stats,format,usd,types}.ts · styles.css · test/ (vitest, 100%)
@@ -117,6 +117,7 @@ pins, npm and uv current:
 | `python.yml` | `ruff` + `mypy` + `pytest` 100% gate (offline, fast) |
 | `data.yml` | the two committed copies of the artifact are identical, the pipeline still reproduces INDEC, and the committed artifact matches the rebuild |
 | `data-update.yml` | monthly watch — opens a draft PR when a newer EPH quarter is published |
+| `cpi-sync.yml` | monthly sync — regenerates `data/cpi_monthly.json` from peso's published artifact and, when the months changed, rebuilds, tests and pushes to master (which deploys) |
 
 ## Reproducibility
 
@@ -156,8 +157,9 @@ The app deliberately separates two kinds of figures:
 2. **Reference layer — external sourced estimates** (clearly flagged as such in the UI), stored as
    dated, cited blocks in `pipeline/config.py`:
    - `HISTORY` — Gini (quarterly) + poverty/indigence (semestral) + nominal median, from INDEC press reports.
-   - `CPI_MONTHLY` — INDEC's monthly IPC from the survey's reference month on, copied from peso's
-     spliced artifact; deflates the typed income to survey pesos.
+   - `CPI_MONTHLY` — INDEC's monthly IPC from the survey's reference month on, loaded from
+     `data/cpi_monthly.json`, which `pipeline/cpi_sync.py` regenerates from peso's published artifact
+     (monthly, `cpi-sync.yml`); deflates the typed income to survey pesos. Never edit it by hand.
    - `POVERTY_LINES` — CBA/CBT per adulto equivalente (period-matched to the income vintage).
    - `COST_OF_LIVING` — rent, utilities, food, transport, internet, health + SMVM/jubilación, gathered
      mid-2026 from Zonaprop, IIEP-UBA/CONICET, AySA, telco comparators and press. These vary widely by
