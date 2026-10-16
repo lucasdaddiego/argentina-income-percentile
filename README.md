@@ -6,7 +6,7 @@
 [![Data reproduces INDEC](https://github.com/lucasdaddiego/argentina-income-percentile/actions/workflows/data.yml/badge.svg)](https://github.com/lucasdaddiego/argentina-income-percentile/actions/workflows/data.yml)
 
 [![Coverage 100%](https://img.shields.io/badge/coverage-100%25-brightgreen)](https://github.com/lucasdaddiego/argentina-income-percentile/actions)
-[![Python 3.14](https://img.shields.io/badge/python-3.14-3776AB?logo=python&logoColor=white)](pyproject.toml)
+[![Python 3.15](https://img.shields.io/badge/python-3.15-3776AB?logo=python&logoColor=white)](pyproject.toml)
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white)](web/tsconfig.json)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
