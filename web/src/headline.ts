@@ -154,7 +154,9 @@ export function renderContext(v: number, pct: number) {
     cell("Vs. el hogar típico", signedARS(gMed), `${signedPct(gMed / m.median)} · mediana ${fmtShort(m.median)}`, `mediana del país ${fmtARS(m.median)}`) +
     cell("Vs. el promedio", signedARS(gMean), `${signedPct(gMean / m.mean)} · promedio ${fmtShort(m.mean)}`, `promedio del país ${fmtARS(m.mean)}`) +
     cell("Canastas de pobreza", fmtX(v / cbt), "la línea de pobreza es 1×", `canasta básica total ${fmtARS(cbt)} por persona`);
-  if (smvm) cells += cell("Vs. salario mínimo", fmtX(v / smvm), `por persona, vs SMVM ${fmtShort(smvm)}`, `salario mínimo ${fmtARS(smvm)}`);
+  // The SMVM is a current wage, like the cost basket: compare it with the income as typed, not with
+  // `v` (pesos of the survey month), or a household earning exactly one SMVM reads "0,8×".
+  if (smvm) cells += cell("Vs. salario mínimo", fmtX(nominalPerPerson() / smvm), `por persona, vs SMVM ${fmtShort(smvm)}`, `salario mínimo ${fmtARS(smvm)}`);
   cells += next;
 
   $("context-strip").innerHTML = cells;

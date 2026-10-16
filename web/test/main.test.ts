@@ -657,6 +657,18 @@ describe("artifact variants", () => {
     await boot({ artifact: a });
     expect($("foot-trend-median").innerHTML).toContain("mediana");
   });
+  it("compares the SMVM with the income as typed, not with the deflated one", async () => {
+    // One person earning exactly one SMVM, dated the newest CPI month: the cell must read 1×. It
+    // used to divide the income in survey-month pesos (≈20 % less) by the current SMVM.
+    const smvm = ARTIFACT.cost_of_living.reference_incomes.smvm;
+    await boot({ presetIncome: String(smvm), presetPeople: "1" });
+    expect(REF_MONTH).not.toBe(LAST_MONTH);
+    const cell = [...document.querySelectorAll("#context-strip .ctx-cell")].find((c) =>
+      c.textContent?.includes("Vs. salario mínimo"),
+    );
+    expect(cell?.querySelector(".ctx-value")?.textContent).toBe("1×");
+  });
+
   it("omits the SMVM cells when no reference income is present", async () => {
     const a = craft((a) => {
       a.cost_of_living.reference_incomes = {} as never;
