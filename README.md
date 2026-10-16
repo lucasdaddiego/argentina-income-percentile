@@ -95,7 +95,10 @@ artifact. Everything quantitative is computed once, offline, and validated.
 pipeline/   config (pinned facts) · fetch · verify · load · weighted · build · validate · artifact_check · watch · cpi_sync
 tests/      pytest suite for pipeline/ — offline, synthetic fixture, 100% statement+branch coverage
 data/       checksums.txt · percentiles.v1.json   (raw/ is gitignored)
-web/        index.html · src/{main,charts,stats,format,usd,types}.ts · styles.css · test/ (vitest, 100%)
+web/        index.html · styles.css · test/ (vitest, 100%) · src/:
+              main.ts (init, controls, renderAll) · app.ts (state, artifact, deflated income) · ui.ts
+              headline · ladder · splits · geo · time · poverty · cost · visuals · about · classes
+              charts · stats · format · usd · types
 docs/       metodologia.md
 ```
 
