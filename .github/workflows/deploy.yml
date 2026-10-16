@@ -5,7 +5,7 @@ name: Web (test + deploy)
 # that did not pass the tests on the same commit.
 #   • push to master / main  -> production deploy (argentina-income-analyzer.pages.dev)
 #   • pull request           -> preview deploy on a per-branch URL (same-repo PRs only: a fork PR
-#                               gets no secrets, so it runs `test` alone)
+#                               or a Dependabot PR gets no secrets, so it runs `test` alone)
 #
 # Path-filtered to the web app. The committed data artifact lives in
 # web/public/percentiles.v1.json, so a `make data` refresh that updates it also redeploys.
@@ -49,9 +49,9 @@ jobs:
         with:
           persist-credentials: false
       - name: Set up Node
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: "24"
+          node-version: "26"
           cache: npm
           cache-dependency-path: web/package-lock.json
       - name: Install web deps
@@ -67,11 +67,17 @@ jobs:
   deploy:
     name: Build + deploy
     needs: test
-    # Fork PRs don't receive the deploy secrets — skip them (the test job above still ran).
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    # Fork PRs and Dependabot PRs don't receive the deploy secrets (Dependabot runs get only
+    # Dependabot secrets), so the deploy would fail on a missing account id: skip them. The test job
+    # above still ran.
+    if: >-
+      github.event_name != 'pull_request' ||
+      (github.event.pull_request.head.repo.full_name == github.repository &&
+       github.event.pull_request.user.login != 'dependabot[bot]')
     # @main on purpose: the reusable workflow is my own public repo, and its actions are SHA-pinned there.
     uses: lucasdaddiego/.github/.github/workflows/cloudflare-deploy.yml@main
     with:
+      node-version: "26"
       working-directory: web
       build: npm run build
       # PR -> preview on the PR branch; push -> production (the project's production branch is master).
