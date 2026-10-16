@@ -63,3 +63,14 @@ def test_cpi_monthly_is_contiguous_from_the_survey_reference_month():
     idx = [m["index"] for m in c["months"]]
     assert all(x > 0 for x in idx) and idx == sorted(idx)  # Argentine CPI never fell month on month here
     assert "peso" in c["source"] and "INDEC" in c["source"]
+
+
+def test_every_indigence_figure_names_its_month():
+    # Two CBA figures reach the page: the survey-month line (poverty section) and the newer
+    # "piso de indigencia" in the cost basket. An undated second figure read as a contradiction.
+    floor = config.COST_OF_LIVING["floor"]
+    amount = f"${floor['amount']:,.0f}".replace(",", ".")
+    texts = [line["detail"] for line in config.COST_OF_LIVING["lines"] if amount in line["detail"]]
+    assert texts, "the cost basket no longer quotes the floor: drop this test"
+    assert all("mayo 2026" in t and config.POVERTY_LINES["period_label"] in t for t in texts)
+    assert "may-2026" in floor["detail"]

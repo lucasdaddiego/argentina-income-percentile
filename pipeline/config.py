@@ -416,7 +416,7 @@ COST_OF_LIVING = {
             "label": "Alimentos (gasto típico)",
             "amount": 350000,
             "scope": "hogar",
-            "detail": "Estimación ~1,5–1,7× la Canasta Básica Alimentaria. El piso de indigencia (solo comer) es $220.468 por adulto.",
+            "detail": "Estimación ~1,5–1,7× la Canasta Básica Alimentaria. El piso de indigencia (solo comer) es $220.468 por adulto en mayo 2026 (la sección de pobreza usa la CBA de octubre 2025, el mes de la encuesta).",
             "source": "Estimación s/ INDEC",
             "confidence": "medium",
         },

@@ -464,6 +464,13 @@ describe("cost & budget", () => {
     expect($("cost-region").innerHTML).toContain("Buenos Aires");
   });
 
+  it("dates the household poverty line it quotes next to today's prices", async () => {
+    // The basket is priced mid-2026; the CBT is the survey month's. Undated, the two read as one month.
+    await boot();
+    const cbt3 = fmtARS(ARTIFACT.poverty_lines.cbt_adulto_equiv * 3);
+    expect($("cost-analysis").innerHTML).toContain(`era ~${cbt3} en ${ARTIFACT.poverty_lines.period_label}.`);
+  });
+
   it("says the minimum wage and pension fall short only when they do, against the edited basket", async () => {
     await boot();
     // Default basket ($1.475.423) is above both the SMVM ($367.800) and the jubilación ($403.318).

@@ -94,7 +94,7 @@ export function recomputeBudget() {
       : `Tu ingreso del hogar (<strong>${fmtARS(H)}</strong>) alcanza para el <strong>${Math.round(ratio * 100)}%</strong> de esa canasta: faltarían <strong>${fmtARS(-leftover)}</strong> por mes. Por eso muchos hogares recortan (alquiler más barato, salud pública, menos consumo).`;
   $("cost-analysis").innerHTML =
     `Esta canasta de gastos del hogar suma <strong>${fmtARS(total)}</strong> por mes. ${verdict}<br><br>` +
-    `${short.length ? "Para ubicarlo entre dos extremos" : "Como referencia"}: la <strong>línea de pobreza</strong> de tu hogar de ${N} ${N === 1 ? "persona" : "personas"} (lo mínimo para no ser pobre) es ~${fmtARS(cbtHogar)}.` +
+    `${short.length ? "Para ubicarlo entre dos extremos" : "Como referencia"}: la <strong>línea de pobreza</strong> de tu hogar de ${N} ${N === 1 ? "persona" : "personas"} (lo mínimo para no ser pobre) era ~${fmtARS(cbtHogar)} en ${data.poverty_lines.period_label}.` +
     shortTxt;
 
   charts.renderBudget($("chart-budget"), H, lines, N);
