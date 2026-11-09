@@ -21,7 +21,7 @@
     "test:cov": "vitest run --coverage"
   },
   "dependencies": {
-    "@observablehq/plot": "^0.6.17"
+    "@observablehq/plot": "^0.6.19"
   },
   "devDependencies": {
     "@vitest/coverage-v8": "^5.0.5",
